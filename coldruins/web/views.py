@@ -35,8 +35,12 @@ def _verdict_error(message):
 def near_location(request, location):
   return _verdict_ok({'received':location})
 
+def login(request, auth_response):
+  return {}
+
 data_providers = {
   'near_location': near_location,
+  'login': login
 }
 
 @ensure_csrf_cookie
