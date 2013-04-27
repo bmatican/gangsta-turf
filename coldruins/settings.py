@@ -157,3 +157,28 @@ LOGGING = {
         },
     }
 }
+
+AUTHENTICATION_BACKENDS = (
+  'django_facebook.auth_backends.FacebookBackend',
+  'django.contrib.auth.backends.ModelBackend',
+)
+
+AUTH_PROFILE_MODULE = 'django_facebook.FacebookProfile'
+
+"""
+DEFAULT_LOCATION = '127.0.0.1:11211'
+CACHES = {
+    'default': {
+      'BACKEND': 'johnny.backends.memcached.MemcachedCache',
+      'LOCATION': [DEFAULT_LOCATION],
+      'JOHNNY_CACHE': True,
+    }
+}
+JOHNNY_MIDDLEWARE_KEY_PREFIX = 'jc_CS'
+"""
+
+try:
+  # import here to override, also catch error if file not here
+  from local_settings import *
+except ImportError:
+  pass
