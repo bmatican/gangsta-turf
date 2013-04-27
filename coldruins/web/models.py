@@ -58,6 +58,7 @@ class UserMeta(models.Model):
         primary_key=True)
     clan = models.ForeignKey(Clan, related_name='members',
         blank=True, null=True)
+    fb_token = models.TextField()
     resourceA = models.IntegerField(default=0)
     resourceB = models.IntegerField(default=0)
     resourceC = models.IntegerField(default=0)
@@ -65,9 +66,10 @@ class UserMeta(models.Model):
     resourceE = models.IntegerField(default=0)
 
     def __unicode__(self):
-        return 'User {} of clan {}: ({}, {}, {}, {})'.format(
+        return 'User {} of clan {}: ({}, {}, {}, {}, {})'.format(
             self.user, self.clan,
-            self.resourceA, self.resourceB, self.resourceC, self.resourceD)
+            self.resourceA, self.resourceB, self.resourceC,
+            self.resourceD, self.resourceE)
 
 
 class Troops(models.Model):
