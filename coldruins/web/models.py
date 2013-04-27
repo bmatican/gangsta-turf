@@ -22,7 +22,7 @@ LOCATION_REWARDS = dict((
 
 UNITS = (
     (1, 'Unit 1'),
-    (2, 'Unit 2'),
+    (2, 'Unit 3'),
     (3, 'Unit 3'),
     (4, 'Unit 4'),
     (5, 'Unit 5'),
@@ -34,21 +34,46 @@ UNITS = (
 )
 
 
+UNIT_POWER = dict((
+    (1, 1),
+    (2, 2),
+    (3, 3),
+    (4, 4),
+    (5, 5),
+    (6, 6),
+    (7, 7),
+    (8, 8),
+    (9, 9),
+    (10, 10),
+))
+
+
 class Clan(models.Model):
     name = models.CharField(max_length=64, unique=True)
 
     def __unicode__(self):
         return 'Clan {}'.format(self.name)
 
+    def get_clan_power_in_location(self, location):
+        troops = Troops.objects \
+            .filter(location=location) \
+            .filter(owner__clan=self)
+
+        power = 0
+        for troop in troops:
+            power += UNIT_POWER[troop.unit] * troop.count
+        return power
+
 
 class Location(models.Model):
     fb_id = models.BigIntegerField(unique=True)
     name = models.CharField(max_length=64)
-    owner = models.ForeignKey(Clan, related_name='owned_locations',
-        blank=True, null=True)
     lon = models.FloatField()
     lat = models.FloatField()
     category = models.IntegerField(choices=LOCATION_CATEGORIES)
+    owner = models.ForeignKey(Clan, related_name='owned_locations',
+        blank=True, null=True)
+    last_payment = models.DateTimeField(blank=True, null=True, default=None)
 
     def __unicode__(self):
         return '{} ({})'.format(
@@ -75,7 +100,7 @@ class UserMeta(models.Model):
 
 
 class Troops(models.Model):
-    owner = models.ForeignKey(User, related_name='troops')
+    owner = models.ForeignKey(UserMeta, related_name='troops')
     unit = models.IntegerField(choices=UNITS)
     count = models.IntegerField(default=1)
     location = models.ForeignKey(Location, related_name='troops')
@@ -99,7 +124,7 @@ class Troops(models.Model):
 
 
 class TroopMovement(models.Model):
-    owner = models.ForeignKey(User, related_name='moving_troops')
+    owner = models.ForeignKey(UserMeta, related_name='moving_troops')
     unit = models.IntegerField(choices=UNITS)
     count = models.IntegerField(default=1)
     lfrom = models.ForeignKey(Location, related_name='leaving_troops')
@@ -124,3 +149,20 @@ class TroopMovement(models.Model):
         self.lto = self.lfrom
         self.arrive_time = now() + (now() - self.leave_time)
         self.save()
+
+
+class OngoingFight(models.Model):
+    location = models.OneToOneField(Location, related_name='ongoing_fight')
+    offender = models.ForeignKey(Clan, related_name='+')
+    start = models.DateTimeField(default=now)
+
+
+class PastFight(models.Model):
+    DEFENDER = 1
+    OFFENDER = 2
+    CHOICES = ((DEFENDER, 'defender'), (OFFENDER, 'offender'))
+
+    location = models.ForeignKey(Location, related_name='past_fights')
+    defender = models.ForeignKey(Clan, related_name='+')
+    offender = models.ForeignKey(Clan, related_name='+')
+    winner = models.IntegerField(choices=CHOICES)
