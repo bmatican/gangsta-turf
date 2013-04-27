@@ -1,4 +1,5 @@
 from django.http import HttpResponse
 
 def home(request):
-    return HttpResponse('Hello, world <3')
+    return HttpResponse(
+        open('coldruins/web/index.html', 'rt').read())
