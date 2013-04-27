@@ -4,11 +4,11 @@ from django.utils.timezone import now
 
 
 LOCATION_CATEGORIES = (
-    (1, 'Category 1'),
-    (2, 'Category 2'),
-    (3, 'Category 3'),
-    (4, 'Category 4'),
-    (5, 'Category 5'),
+    (1, 'Food & Drinks'),
+    (2, 'Arts & Entertainment'),
+    (3, 'Shopping & Retail'),
+    (4, 'Companies & Education'),
+    (5, 'Attractions'),
 )
 
 
@@ -46,6 +46,8 @@ class Location(models.Model):
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(Clan, related_name='owned_locations',
         blank=True, null=True)
+    lon = models.FloatField()
+    lat = models.FloatField()
     category = models.IntegerField(choices=LOCATION_CATEGORIES)
 
     def __unicode__(self):
