@@ -4,3 +4,9 @@
 local_settings.py
 /media/
 /static/
+
+*.swp
+
+local_settings.py
+db.sqlite3
+.nginx_conf
