@@ -10,12 +10,26 @@ import json
 
 from coldruins.web.decorators import *
 from coldruins.web.models import User, UserMeta
+from coldruins.web.fbgraph import *
 
 @ensure_csrf_cookie
 def home(request):
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read())
 
+def locations(request):
+  token = 'BAACEdEose0cBAE5X5Uq47awMD9keThPrZCZBQsWUzHvNuNgmY43EslangMfcuZAWdPZCrrVoZBKl9JUCQ9Yigt4HntyDzXuVx4AazxftqpLOZB1HY6SC11EM0xl7CXmZCusN0hAFEM5xMCpZBmCttKiO6HBaBuZBtPZC6uaRjjQPARRDQ7f0L3EcPc7EDnYfzqONp7ZA9umyfwjGpbTZB5C64ONEpPZBGE8OjFWSCjJgSTsw6SwZDZD'
+  center = (51.513855129521,-0.12574267294645)
+  distance = 500
+  places = get_places(token, center, distance)
+
+  categories = set()
+  for p in places:
+    categories.add(p['category'])
+    for c in p['category_list']:
+      categories.add(c['name'])
+  print categories
+  return HttpResponse(json.dumps(places))
 
 @require_POST
 def logout_view(request):
