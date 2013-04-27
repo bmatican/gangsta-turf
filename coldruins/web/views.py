@@ -1,17 +1,21 @@
-from django.contrib.auth import logout
+from django.contrib.auth import login, logout
 from django.conf import settings
 from django.core.urlresolvers import reverse as url_reverse
 from django.db import transaction, IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.views.decorators.csrf import ensure_csrf_cookie
+import facebook
 
 import json
 
 from coldruins.web.decorators import *
+from coldruins.web.models import User, UserMeta
 
+@ensure_csrf_cookie
 def home(request):
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read())
+
 
 @require_POST
 def logout_view(request):
@@ -19,32 +23,56 @@ def logout_view(request):
     logout(request)
   messages.info(request, 'You are now logged out.')
   return HttpResponseRedirect(url_reverse('home'))
-##############################################################################
+
+
 def _verdict_ok(response):
   return {
-    'verdict':'ok',
-    'message':response
+    'verdict': 'ok',
+    'message': response
   }
+
 
 def _verdict_error(message):
   return {
-    'verdict':'error',
-    'message':message
+    'verdict': 'error',
+    'message': message
   }
 
+
+@ajax_decorator
 def near_location(request, location):
   return _verdict_ok({'received':location})
 
-def login(request, auth_response):
-  return {}
+
+def login_view(request, accessToken, userID, **kwargs):
+  try:
+    user = User.objects.get(username=userID)
+  except User.DoesNotExist:
+    graph = facebook.GraphAPI(accessToken)
+    profile = graph.get_object('me')
+    user = User.objects.create_user(userID, profile['email'], '')
+    try:
+      user.first_name = profile['first_name']
+      user.last_name = profile['last_name']
+    except KeyError:
+      pass
+    user.save()
+
+  try:
+    user_meta = UserMeta.objects.get(user=user)
+  except UserMeta.DoesNotExist:
+    user_meta = UserMeta(user=user, fb_token=accessToken)
+    user_meta.save()
+
+  return HttpResponseRedirect(url_reverse('home'))
+
 
 data_providers = {
   'near_location': near_location,
-  'login': login
+  'login': login_view,
 }
 
-@ensure_csrf_cookie
-@ajax_decorator
+
 def data_provider(request, action):
   if request.is_ajax():
     try:
