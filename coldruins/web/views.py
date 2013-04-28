@@ -130,7 +130,8 @@ def login_view(request, accessToken, userID, **kwargs):
     user_meta = UserMeta.objects.get(user=user)
   except UserMeta.DoesNotExist:
     user_meta = UserMeta(user=user, fb_token=accessToken)
-    user_meta.save()
+  user_meta.fb_token = accessToken
+  user_meta.save()
 
   user = authenticate(username=userID, password=userID)
   login(request, user)
