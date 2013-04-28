@@ -145,20 +145,20 @@ class Checkin(models.Model):
     def make_checkin(cls, user, location_id):
         loc = Location.objects.get(fb_id=location_id)
         cls.objects.create(
-            user_id=user.meta.id,
+            user_id=user.id,
             location_id=loc.id
         ).save()
         reward = LOCATION_REWARDS[loc.category]
-        user.meta.add_resources(reward, 1.0)
+        user.add_resources(reward, 1.0)
         loc.make_clan_payment()
         if loc.owner is None:
-            loc.owner = user.meta
+            loc.owner = user
             loc.save()
-        user.meta.latest_location = loc
-        user.meta.save()
+        user.latest_location = loc
+        user.save()
         return {
             'reward' : list(reward),
-            'total' : list(user.meta.get_resources()),
+            'total' : list(user.get_resources()),
         }
 
 
@@ -347,6 +347,11 @@ class OngoingFight(models.Model):
     start = models.DateTimeField(default=now)
 
     FIGHT_DURATION = 0.5
+
+    @classmethod
+    def new_fight(cls, user, location):
+        of = OngoingFight(location=location, start=now())
+        of.save()
 
     @classmethod
     def end_pending_fights(cls):

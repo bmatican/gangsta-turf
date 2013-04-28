@@ -161,7 +161,7 @@ def buy_troops(request, unit_id, numbers):
 
 @ajax_decorator
 def checkin(request, location_id):
-  response = Checkin.make_checkin(request.user, location_id)
+  response = Checkin.make_checkin(request.user.meta, location_id)
   return _verdict_ok(response)
 
 @ajax_decorator
@@ -169,6 +169,18 @@ def facepile(request):
   token = request.user.meta.fb_token
   g = Graph(token, 'me')
   return _verdict_ok(g.friends())
+
+@ajax_decorator
+def attack(request, location_id):
+  response = OngoingFight.new_fight(request.user.meta, location_id)
+  return _verdict_ok(response)
+
+
+@ajax_decorator
+def get_fighting_powers(request, location_id):
+  response = OngoingFight.get(location=location_id).fighting_powers
+  return _verdict_ok(response[0])
+
 
 data_providers = {
   'login': login_view,
@@ -178,9 +190,10 @@ data_providers = {
   'make_troops': make_troops,
 
   'get_location_data': get_location_data,
-  'checkin': checkin,
-
   'facepile' : facepile,
+  'checkin': checkin,
+  'attack': attack,
+  'get_fighting_powers': get_fighting_powers,
 }
 
 @process_event_decorator
