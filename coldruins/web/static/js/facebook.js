@@ -11,23 +11,27 @@ window.fbAsyncInit = function fbAsyncInit () {
     xfbml: true
   });
   FB.getLoginStatus(function callback (response) {
+    var callback = window.facebook_logged_in || function no_callback () {};
     if (response.status !== 'connected') {
-        FB.login(function(response) {
-          if (response.authResponse) {
-            console.info('Facebook: logged in');
-            pullData(
-              'login', 
-              response.authResponse, 
-              'post', 
-              function no_callback () {}
-            );
-          } else {
-            console.warn('Facebook: not logged in!');
-          }
-        }, {
-          scope: permissions
-        });
-      }
+      FB.login(function(response) {
+        if (response.authResponse) {
+          console.info('Facebook: logged in');
+          callback(response.authResponse);
+          pullData(
+            'login', 
+            response.authResponse, 
+            'post', 
+            function no_callback () {}
+          );
+        } else {
+          console.warn('Facebook: not logged in!');
+        }
+      }, {
+        scope: permissions
+      });
+    } else {
+      callback(response.authResponse);
+    }
   });
 };
 
