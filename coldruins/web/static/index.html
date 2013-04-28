@@ -25,38 +25,43 @@
         <!-- This code is taken from http://twitter.github.com/bootstrap/examples/hero.html -->
     
         <div id="header">
-            <span id="user">not logged in</span>
+            <div class="user-info">
+                <span id="user_img"><img src="https://fbcdn-profile-a.akamaihd.net/hprofile-ak-snc7/371878_100000190923727_1451617854_q.jpg"></span>
+                <h3 id="user">not logged in</h3>
+            </div>
             <img src="/static/img/logo.png" class="logo" />
-            <span class="resource">
-                <img src="/static/img/resource-food.png" title="food" class="icon" />
-                <output class="value">0</output>
-            </span>
-            <span class="resource">
-                <img src="/static/img/resource-iron.png" title="iron" class="icon" />
-                <output class="value">0</output>
-            </span>
-            <span class="resource">
-                <img src="/static/img/resource-wood.png" title="wood" class="icon" />
-                <output class="value">0</output>
-            </span>
-            <span class="resource">
-                <img src="/static/img/resource-stone.png" title="stone" class="icon" />
-                <output class="value">0</output>
-            </span>
-            <span class="resource">
-                <img src="/static/img/resource-gold.png" title="gold" class="icon" />
-                <output class="value">0</output>
+            <span id="resources">
+                <span class="resource">
+                    <img src="/static/img/resource-food.png" title="food" class="icon" />
+                    <output class="value">0</output>
+                </span>
+                <span class="resource">
+                    <img src="/static/img/resource-iron.png" title="iron" class="icon" />
+                    <output class="value">0</output>
+                </span>
+                <span class="resource">
+                    <img src="/static/img/resource-wood.png" title="wood" class="icon" />
+                    <output class="value">0</output>
+                </span>
+                <span class="resource">
+                    <img src="/static/img/resource-stone.png" title="stone" class="icon" />
+                    <output class="value">0</output>
+                </span>
+                <span class="resource">
+                    <img src="/static/img/resource-gold.png" title="gold" class="icon" />
+                    <output class="value">0</output>
+                </span>
             </span>
         </div>
 
         <div class="container">
             
-            <div id="map-canvas" style="width:800px; height:600px;"></div>
+            <div id="map-canvas" style="width:900px; height:600px;"></div>
 
             <hr>
 
             <footer>
-                <p>&copy; City SIege 2013</p>
+                <p>&copy; City Siege 2013</p>
             </footer>
 
         </div> <!-- /container -->

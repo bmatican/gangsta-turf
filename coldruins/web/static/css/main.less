@@ -1,23 +1,64 @@
+body {
+  background: url(/static/img/general_bg.jpg);
+}
+
 #header {
   min-width: 800px;
-  #user {
-
+  background: url(/static/img/leather_bg.jpg);
+  position: relative;
+  margin-bottom: 60px;
+  height: 70px;
+  padding-left: 50px;
+  padding-right: 50px;
+  padding-top: 20px;
+  .user-info {
+    height: 100px;
+    display: inline-block;
+    #user_img {
+      vertical-align: middle;
+      img {
+        max-height: 40px;
+        background: #fff;
+        border: 2px solid #844c1e;
+      }
+    }
+    #user {
+      margin: 0px;
+      margin-left: 10px;
+      display: inline;
+      color: #fff;
+    }
   }
   .logo {
+    margin-top: -10px;
     height: 128px;
+    position: absolute;
+    left: 50%;
+    margin-left: -49px;
   }
-  .resource {
-    display: inline-block;
-    border: 1px solid #999;
-    background: #fff;
-    margin: 2px;
-    padding: 2px 5px;
-    .icon {
-      max-height: 16px;
-      max-width: 16px;
-    }
-    .value {
-      color: #333;
+  #resources {
+    float: right;
+
+    .resource {
+      display: inline-block;
+      border: 1px solid #999;
+      background: #fff;
+      margin: 2px;
+      padding: 2px 5px;
+      .icon {
+        max-height: 30px;
+        max-width: 30px;
+      }
+      .value {
+        color: #333;
+      }
     }
   }
+  
 } 
+
+.container {
+  width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}

@@ -28,13 +28,87 @@ function initialize() {
 
 // Create an array of styles.
   var styles = [
-    {
-      stylers: [
-        { hue: "#D66300" },
-        { saturation: -20 }
-      ]
-    }
-  ];
+        {
+          stylers: [
+            { hue: "#D66300" },
+            { saturation: -20 }
+          ]
+        },
+        {
+          featureType: "transit",
+          stylers: [
+            { visibility: "off" }
+          ]
+        },
+        {
+          featureType: "poi.park",
+          elementType: "labels.icon",
+          stylers: [
+            { color: '#FFECE0' },
+            // { hue: "#ff0000" },
+            { visibility: "simplified" }
+          ]
+        },
+        {
+          featureType: 'poi',
+          stylers: [
+            { visibility: 'off' }
+          ]
+        },
+        {
+          featureType: 'road',
+          elementType: 'labels.icon',
+          stylers: [
+            { visibility: 'off' }
+          ]
+        },
+        {
+          featureType: 'road',
+          elementType: 'labels.text.stroke',
+          stylers: [
+            { color: '#a27a54' }
+          ]
+        },
+        {
+          featureType: 'road',
+          elementType: 'labels.text.fill',
+          stylers: [
+            { color: '#ffffff' }
+          ]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry.fill',
+          stylers: [
+            { color: '#a27a54' }
+          ]
+        },
+        {
+          featureType: 'road',
+          elementType: 'geometry.stroke',
+          stylers: [
+            { color: '#ffffff' }
+          ]
+        },
+        {
+          featureType: 'landscape',
+          stylers: [
+            { color: '#d1b396' }
+          ]
+        },
+        {
+          featureType: 'landscape.natural',
+          stylers: [
+            { color: '#C7D9C3' }
+          ]
+        },
+        {
+          featureType: 'water',
+          stylers: [
+            { color: '#e2efff'}
+          ]
+        }
+      ];
 
   // Create a new StyledMapType object, passing it the array of styles,
   // as well as the name to be displayed on the map type control.
