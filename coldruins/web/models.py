@@ -138,9 +138,11 @@ class Checkin(models.Model):
         if loc.owner == None:
             loc.owner = user.meta
             loc.save()
+        print 'here'
+        print user.meta.get_resources()
         return {
             'reward' : reward,
-            'total' : user.get_resources()
+            'total' : user.meta.get_resources()
         }
 
     def __unicode__(self):
@@ -167,12 +169,12 @@ class UserMeta(models.Model):
             self.resourceD, self.resourceE)
 
     def get_resources(self):
-        res = LOCATION_REWARDS[1] # something to fill up
+        res = list(LOCATION_REWARDS[1]) # something to fill up
         for i in LOCATION_REWARDS.keys():
             key = 'resource' + chr(ord('A') - 1 + i)
             r = getattr(self, key)
             res[i - 1] = r
-        return res
+        return tuple(res)
 
     def add_resources(self, resources, mult=1.0):
         backup = list(resources)

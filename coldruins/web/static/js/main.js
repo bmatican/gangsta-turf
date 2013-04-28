@@ -184,7 +184,7 @@ function initialize() {
   // Create a map object, and include the MapTypeId to add
   // to the map type control.
   var mapOptions = {
-    zoom: 24,
+    zoom: 17,
     center: center,
     mapTypeControlOptions: {
       mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'map_style']
@@ -206,7 +206,9 @@ function print_latLong (position) {
 
 function checkin(m) {
   pullData('checkin', {location_id: m.locationid}, 'post', function(rsp) {
-    console.log(rsp);
+    for(var i=1; i <= 5; i++) {
+      
+    }
   });
 }
 
