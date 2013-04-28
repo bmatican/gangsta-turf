@@ -11,6 +11,9 @@ window.facebook_logged_in = function facebook_logged_in (authResponse) {
   FB.api('/me?fields=id,first_name,last_name,picture', function facebook_api_callback (response) {
     $('#user').html(response.first_name+' '+response.last_name);
     $('#user_img').attr('src', response.picture.data.url);
+    for(var i=0; i <= 4; i++) {
+      $('output.'+CATEGORIES_MAP[i+1]).html(window.userresources[i]);
+    }
   });
 }
 
