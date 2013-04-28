@@ -1,6 +1,34 @@
 import httplib2
 import json
 
+import random
+
+class Graph():
+  def __init__(self, token, fbid):
+    self.token = token
+    self.fbid = fbid
+    self.base = 'https://graph.facebook.com/'
+
+  def friends(self):
+    url = '{}/{}/friends?access_token={}&type=square'.format(
+      self.base,
+      self.fbid,
+      self.token,
+    )
+    _, content = httplib2.Http().request(url)
+    print content
+    content = json.loads(content)
+    data = content['data']
+    friends = []
+    for f in data:
+      friend = {
+        'image' : '{}/{}/picture'.format(self.base, f['id']),
+        'clan' : random.randint(1, 6) # a clan color between 1-6
+      }
+      friends.append(friend)
+    random.shuffle(friends)
+    return friends[:40]
+
 class TokenExpiredException:
   pass
 

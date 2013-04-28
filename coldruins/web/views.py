@@ -27,7 +27,6 @@ def home(request):
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read() + user_data)
 
-
 def _verdict_ok(response):
   return {
     'verdict': 'ok',
@@ -162,6 +161,11 @@ def checkin(request, location_id):
   response = Checkin.make_checkin(request.user, location_id)
   return _verdict_ok(response)
 
+@ajax_decorator
+def facepile(request):
+  token = request.user.meta.fb_token
+  g = Graph(token, 'me')
+  return _verdict_ok(g.friends())
 
 data_providers = {
   'near_location': near_location,
@@ -170,6 +174,7 @@ data_providers = {
   'buy_troops': buy_troops,
   'make_troops': make_troops,
   'get_location_data': get_location_data,
+  'facepile' : facepile,
 }
 
 @process_event_decorator
