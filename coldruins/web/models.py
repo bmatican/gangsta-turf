@@ -80,10 +80,10 @@ class Location(models.Model):
     def export(self):
       owner = None
       clan = None
-      if self.owner != None:
+      if self.owner is not None:
         owner = self.owner.user.id
         clan = self.owner.clan
-        if clan != None:
+        if clan is not None:
           clan = clan.id
       return {
         'db_id' : self.id,
@@ -126,6 +126,7 @@ class Location(models.Model):
                 reward = LOCATION_REWARDS[self.category]
                 multiplier = 2.0
                 self.owner.add_resources(reward, multiplier)
+            self.last_payment = now()
 
 
 class Checkin(models.Model):
@@ -147,7 +148,7 @@ class Checkin(models.Model):
         reward = LOCATION_REWARDS[loc.category]
         user.meta.add_resources(reward, 1.0)
         loc.make_clan_payment()
-        if loc.owner == None:
+        if loc.owner is None:
             loc.owner = user.meta
             loc.save()
         return {
@@ -338,26 +339,81 @@ class OngoingFight(models.Model):
         for fight in cls.objects.filter(start__lt=when):
             fight.end_fight()
 
+    @transaction.commit_on_success
     def end_fight(self):
         assert \
             self.start + datetime.timedelta(hours=cls.FIGHT_DURATION) >= now()
 
-        powers_by_clan = self.powers_by_clan()
+        powers_by_clan, powers_by_user = self.fighting_powers()
+        total_power = sum(powers_by_clan.itervalues())
+        winner = max(powers_by_clan.iteritems(), key=lambda x: x[1])
 
-        # TODO
-        pass
+        # TODO: give spoils to the winner and his clan
 
-    def powers_by_clan(self):
-        # TODO
-        pass
+        if winner[1] * 100 < total_power * 40:
+            # Not enough of a clear victory for territory domination
+            pf = PastFight(location=self.location,
+                           old_owner=self.location.owner,
+                           new_owner=None)
+            pf.save()
+            self.location.owner = None
+            self.location.save()
+            return
 
+        if winner[0][0] == 'user':
+            # Winner has no clan
+            pf = PastFight(location=self.location,
+                           old_owner=self.location.owner,
+                           new_owner=winner[0][1])
+            pf.save()
+            self.location.owner = winner[0][1]
+            self.location.save()
+            return
+
+        clan = winner[0][1]
+        if clan.id == self.location.owner.clan_id:
+            pf = PastFight(location=self.location,
+                           old_owner=self.location.owner,
+                           new_owner=self.location.owner)
+            pf.save()
+        else:
+            new_owner = None
+            for user in power_by_users:
+                if user.clan_id == clan.id:
+                    if new_owner is None or \
+                       power_by_users[user] > power_by_users[new_owner]:
+                        new_owner = user
+
+            pf = PastFight(location=self.location,
+                            old_owner=self.location.owner,
+                            new_owner=new_owner)
+            pf.save()
+            self.location.owner = new_owner
+            self.location.save()
+
+
+    def fighting_powers(self):
+        troops = cls.objects.filter(location=self.location) \
+            .select_related('owner__clan').all()
+        by_clan = {}
+        by_user = {}
+        for t in troops:
+            unit_power = UNIT_POWER[t.unit] * t.count
+
+            if t.owner.clan is None:
+                key = ('user', t.owner)
+            else:
+                key = ('clan', t.owner.clan)
+            if key not in by_clan:
+                by_clan[key] = 0
+            by_clan[key] += unit_power
+
+            if t.owner not in by_user:
+                by_user[t.owner] = 0
+            by_user[t.owner] += unit_power
+        return by_clan, by_user
 
 class PastFight(models.Model):
-    DEFENDER = 1
-    OFFENDER = 2
-    CHOICES = ((DEFENDER, 'defender'), (OFFENDER, 'offender'))
-
     location = models.ForeignKey(Location, related_name='past_fights')
-    defender = models.ForeignKey(Clan, related_name='+')
-    offender = models.ForeignKey(Clan, related_name='+')
-    winner = models.IntegerField(choices=CHOICES)
+    old_owner = models.ForeignKey(Clan, related_name='+')
+    new_owner = models.ForeignKey(Clan, related_name='+')
