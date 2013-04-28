@@ -169,26 +169,67 @@ class UserMeta(models.Model):
 
 class Troops(models.Model):
     owner = models.ForeignKey(UserMeta, related_name='troops')
+    location = models.ForeignKey(Location, related_name='troops',
+        blank=True, null=True)
     unit = models.IntegerField(choices=UNITS)
     count = models.IntegerField(default=1)
-    location = models.ForeignKey(Location, related_name='troops')
 
     class Meta:
         verbose_name_plural = 'troops'
+        unique_together = (('owner', 'location', 'unit'),)
 
     def __unicode__(self):
         return '{} x {} belonging to {} stationed in {}'.format(
             self.count, self.unit, self.owner, self.location)
 
+    @staticmethod
+    def update_count(owner, location, unit, delta):
+        try:
+            t = Troops.objects.get(owner=owner, location=location, unit=unit)
+        except Troops.DoesNotExist:
+            t = Troops(owner=owner, location=location, unit=unit,
+                       count=0)
+        t.count += delta
+
+        assert t.count >= 0
+        if t.count == 0:
+            t.delete()
+        else:
+            t.save()
+
     @transaction.commit_on_success
-    def move(self, where):
+    def move(self, where, count=None):
+        assert self.location is not None
+
+        if count is None:
+            count = self.count
+
         distance = 10          # FIXME
         tm = TroopMovement(
-            owner=self.owner, unit=self.unit, count=self.count,
+            owner=self.owner, unit=self.unit, count=count,
             lfrom=self.location, lto=where,
             leave_time=now(), arrive_time=now() + distance)
         tm.save()
-        self.delete()
+
+        Troops.update_count(self.owner, self.location, self.unit, -count)
+
+    @transaction.commit_on_success
+    def station(self, where, count=None):
+        assert self.location is None
+
+        if count is None:
+            count = self.count
+        Troops.update_count(self.owner, where, self.unit, count)
+        Troops.update_count(self.owner, None, self.unit, -count)
+
+    @transaction.commit_on_success
+    def pickup(self, where, count=None):
+        assert self.location is not None
+
+        if count is None:
+            count = self.count
+        Troops.update_count(self.owner, None, self.unit, count)
+        Troops.update_count(self.owner, self.location, self.unit, -count)
 
 
 class TroopMovement(models.Model):
@@ -207,9 +248,9 @@ class TroopMovement(models.Model):
     @transaction.commit_on_success
     def troop_arrive(self):
         assert self.arrive_time <= now()
-        t = Troops(owner=self.owner, unit=self.unit, count=self.count,
-                   location=self.lto)
-        t.save()
+        Troops.update_count(
+            owner=self.owner, unit=self.unit, location=self.lto,
+            delta=self.count)
         self.delete()
 
     def troop_send_back(self):
