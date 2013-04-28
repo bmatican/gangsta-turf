@@ -1,5 +1,10 @@
 jQuery(function jquery_dom_loaded () {
-  
+  $('#overlay').click(function(e){
+    $('#overlay').fadeOut();
+  });
+  $('#overlay div').click(function(e){
+    e.stopPropagation();
+  });
 });
 
 window.facebook_logged_in = function facebook_logged_in (authResponse) {
@@ -30,6 +35,14 @@ var icons = {
   stone_clan: dir.images + '/pin_stone.png',
   wood_clan: dir.images + '/pin_wood.png',
 };
+
+var units = [
+  undefined,
+  'knights',
+  'moreknights',
+  'whatever',
+  'somethingelse'
+]
 
 var map;
 
@@ -157,8 +170,8 @@ function initialize() {
               }
             }
             add_location_marker(
-              places[i].fields.fb_id,
-              places[i].fields.name,
+              places[i].fb_id,
+              places[i].name,
               type,
               new google.maps.LatLng(places[i].lat, places[i].lon)
             );
@@ -171,7 +184,7 @@ function initialize() {
   // Create a map object, and include the MapTypeId to add
   // to the map type control.
   var mapOptions = {
-    zoom: 15,
+    zoom: 24,
     center: center,
     mapTypeControlOptions: {
       mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'map_style']
@@ -198,8 +211,21 @@ function checkin(m) {
 }
 
 function checkin_overlay(m) {
-  $('.locationname').html(m.locationname);
-  $('#overlay').fadeIn();
+  pullData('get_location_data', {location_id: m.locationid}, 'post', function(rsp) {
+    $('.locationname').html(m.locationname);
+    var $container = $(document.createElement('div'));
+    console.log(rsp);
+    for (var i = 1; i <= 4; i++) {
+      var $tmp = $(document.createElement('div')).
+        append($(document.createElement('span')).html(units[i] + ": ")).
+        append($(document.createElement('span')).html(rsp.i));
+      $container.append($tmp);
+    }
+    $('.checkinbtn').click(function(e) {
+      checkin(m);
+    });
+    $('#overlay').fadeIn();
+  });
 }
 
 function add_location_marker (id, name, type, location) {
