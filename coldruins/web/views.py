@@ -11,12 +11,11 @@ import facebook
 import json
 
 from coldruins.web.decorators import *
-from coldruins.web.models import User, UserMeta, Location
+from coldruins.web.models import *
 from coldruins.web.fbgraph import *
 
 @ensure_csrf_cookie
 def home(request):
-  # return HttpResponse(request.user)
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read())
 
@@ -132,9 +131,15 @@ def login_view(request, accessToken, userID, **kwargs):
   return HttpResponseRedirect(url_reverse('home'))
 
 
+@ajax_decorator
+def checkin(request, location_id)
+  reward = Checkin.make_checkin(request.user, location_id)
+  return _verdict_ok({'reward':reward})
+
 data_providers = {
   'near_location': near_location,
   'login': login_view,
+  'checkin': checkin,
 }
 
 
