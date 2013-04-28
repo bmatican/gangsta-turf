@@ -106,7 +106,7 @@ class Checkin(models.Model):
 
     @classmethod
     def make_checkin(cls, user, location_id):
-        loc = Location.objects.get(id=location_id)
+        loc = Location.objects.get(fb_id=location_id)
         cls.objects.create(
             user_id=user.id,
             location_id=location_id,

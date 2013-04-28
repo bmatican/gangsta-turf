@@ -155,6 +155,7 @@ function initialize() {
               }
             }
             add_location_marker(
+              places[i].fields.fb_id,
               type,
               new google.maps.LatLng(places[i].fields.lat, places[i].fields.lon)
             );
@@ -187,7 +188,13 @@ function print_latLong (position) {
   return position.toString().slice(1).slice(0,-1).replace(/\s/g, '');
 }
 
-function add_location_marker (type, location) {
+function checkin(m) {
+  pullData('checkin', {location_id: m.locationid}, 'post', function(rsp) {
+    console.log(rsp);
+  });
+}
+
+function add_location_marker (id, type, location) {
   if (!icons[type]) {
     console.warn('[add_location_marker] Unknown type :'+type);
     return null;
@@ -197,6 +204,10 @@ function add_location_marker (type, location) {
     map: map,
     icon: icons[type]
   });
+  marker.locationid = id;
   markers.push(marker);
+  google.maps.event.addListener(marker, 'click', function(e) {
+    checkin(marker);
+  });
   return marker;
 }
