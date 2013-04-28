@@ -14,6 +14,7 @@ from coldruins.web.decorators import *
 from coldruins.web.models import *
 from coldruins.web.fbgraph import *
 
+@process_event_decorator
 @ensure_csrf_cookie
 def home(request):
   user_data = ''
@@ -25,13 +26,6 @@ def home(request):
     user_data += '<script>window.userresources={}</script>'.format(resources)
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read() + user_data)
-
-@require_POST
-def logout_view(request):
-  if request.user.is_authenticated():
-    logout(request)
-  messages.info(request, 'You are now logged out.')
-  return HttpResponseRedirect(url_reverse('home'))
 
 
 def _verdict_ok(response):
@@ -50,6 +44,7 @@ def _verdict_error(message):
 @ajax_decorator
 def near_location(request, center, distance):
   return _get_locations(request, center, distance)
+
 
 def _get_locations(request, center, distance):
   # token = 'BAACEdEose0cBAKaRmOZBE29VpXfFHYgZCsWP2zyw7aoQ8GdZBeYtTMiAdbFitCYZA2FM34xoL7MkZC6cfoFQR0dTUx1sBpZCYnyrScZCyZCN4k2ZAMCo1rdS1sxYJqDYjbeOpPlANc1KEurCDSaSFWEbWHRPvOyHzZAZAPGyuMEzCVUQktFj9FdlDEHV0vGXh11ZA78iMdEuPYZBwyuwKaH6U5Fb2hcNeckuEzm9tBa6SZCWOsxAZDZD'
@@ -112,6 +107,8 @@ def _get_locations(request, center, distance):
   ret = [l.export() for l in response]
   return _verdict_ok(ret)
 
+
+@ajax_decorator
 def login_view(request, accessToken, userID, **kwargs):
   try:
     user = User.objects.get(username=userID)
@@ -137,10 +134,12 @@ def login_view(request, accessToken, userID, **kwargs):
   login(request, user)
   return HttpResponseRedirect(url_reverse('home'))
 
+
 @ajax_decorator
 def get_location_data(request, location_id):
   troops = Troops.get_troops(location_id)
   return troops
+
 
 @ajax_decorator
 def make_troops(request, location_db_id, unit_id, count):
@@ -163,6 +162,7 @@ def checkin(request, location_id):
   response = Checkin.make_checkin(request.user, location_id)
   return _verdict_ok(response)
 
+
 data_providers = {
   'near_location': near_location,
   'login': login_view,
@@ -172,7 +172,7 @@ data_providers = {
   'get_location_data': get_location_data,
 }
 
-
+@process_event_decorator
 def data_provider(request, action):
   if request.is_ajax():
     try:

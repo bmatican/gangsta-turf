@@ -36,7 +36,6 @@ UNIT_PRICES = (
     (4, (4, 0, 0, 1, 1)),
 )
 
-
 UNIT_POWER = dict((
     (1, 1),
     (2, 2),
@@ -105,13 +104,17 @@ class Location(models.Model):
             if location.owner is None:
                 continue
             location.make_clan_payment()
+        for location in cls.objects.filter(last_payment=None):
+            if location.owner is None:
+                continue
+            location.make_clan_payment()
 
     def make_clan_payment(self):
-        if self.owner != None:
+        if self.owner is not None:
             clan = self.owner.clan
-            if clan != None:
+            if clan is not None:
                 clan_member_cnt = clan.members.count()
-                reward = LOCATION_REWARD[self.category]
+                reward = LOCATION_REWARDS[self.category]
                 multiplier = 1.0
                 for clan_member in clan.members.all():
                     mul = multiplier
@@ -119,12 +122,16 @@ class Location(models.Model):
                     if clan_member.id == self.owner.id:
                         mul = 2 * multiplier
                     clan_member.add_resources(reward, mul / clan_member_cnt)
+            else:
+                reward = LOCATION_REWARDS[self.category]
+                multiplier = 2.0
+                self.owner.add_resources(reward, multiplier)
 
 
 class Checkin(models.Model):
     user = models.ForeignKey(User, related_name='user_checkins')
     location = models.ForeignKey(Location, related_name='location_checkins')
-    time = models.DateTimeField(auto_now_add=True)
+    time = models.DateTimeField(default=now)
 
     def __unicode__(self):
         return 'Checkin by user {} at {}'.format(self.user.id,
@@ -273,24 +280,8 @@ class Troops(models.Model):
 
     @classmethod
     def make_troops(cls, user_id, location_db_id, unit_id, count):
-      if int(unit_id) in dict(UNITS):
-        troops = cls.objects.filter(
-          owner_id=user_id,
-          location_id=location_db_id,
-          unit=unit_id
-        ).all()
-        print len(troops)
-        if len(troops) > 0:
-          troops = troops[0]
-          troops.count += count
-          troops.save()
-        else:
-          cls.objects.create(
-            owner_id=user_id,
-            location_id=location_db_id,
-            unit=unit_id,
-            count=count
-          ).save()
+        if int(unit_id) in dict(UNITS):
+            Troops.update_count(user_id, location_db_id, unit_id, count)
 
     @classmethod
     def get_troops(cls, location_id):
@@ -337,8 +328,28 @@ class TroopMovement(models.Model):
 
 class OngoingFight(models.Model):
     location = models.OneToOneField(Location, related_name='ongoing_fight')
-    offender = models.ForeignKey(Clan, related_name='+')
     start = models.DateTimeField(default=now)
+
+    FIGHT_DURATION = 0.5
+
+    @classmethod
+    def end_pending_fights(cls):
+        when = now() - datetime.timedelta(hours=cls.FIGHT_DURATION)
+        for fight in cls.objects.filter(start__lt=when):
+            fight.end_fight()
+
+    def end_fight(self):
+        assert \
+            self.start + datetime.timedelta(hours=cls.FIGHT_DURATION) >= now()
+
+        powers_by_clan = self.powers_by_clan()
+
+        # TODO
+        pass
+
+    def powers_by_clan(self):
+        # TODO
+        pass
 
 
 class PastFight(models.Model):
