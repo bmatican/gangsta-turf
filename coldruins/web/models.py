@@ -78,6 +78,25 @@ class Location(models.Model):
         return '{} ({})'.format(
             self.name, dict(LOCATION_CATEGORIES)[self.category])
 
+    def export(self):
+      owner = None
+      clan = None
+      if self.owner != None:
+        owner = self.owner.user.id
+        clan = self.owner.clan
+        if clan != None:
+          clan = clan.id
+      return {
+        'fb_id' : self.fb_id,
+        'name' : self.name,
+        'lat' : self.lat,
+        'lon' : self.lon,
+        'category' : self.category,
+        'owner' : owner,
+        'last_payment' : self.last_payment,
+        'clan' : clan
+      }
+
     @classmethod
     def make_pending_payments(cls):
         when = now() - datetime.timedelta(hours=cls.PAYMENT_PERIOD)
