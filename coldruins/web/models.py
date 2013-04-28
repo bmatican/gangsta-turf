@@ -100,11 +100,12 @@ class Location(models.Model):
     @classmethod
     def make_pending_payments(cls):
         when = now() - datetime.timedelta(hours=cls.PAYMENT_PERIOD)
-        for location in cls.objects.filter(last_payment__lt=when):
+        candidate_locations = cls.objects.exclude(owner=None)
+        for location in candidate_locations.filter(last_payment__lt=when):
             if location.owner is None:
                 continue
             location.make_clan_payment()
-        for location in cls.objects.filter(last_payment=None):
+        for location in candidate_locations.filter(last_payment=None):
             if location.owner is None:
                 continue
             location.make_clan_payment()
@@ -127,22 +128,24 @@ class Location(models.Model):
                 multiplier = 2.0
                 self.owner.add_resources(reward, multiplier)
             self.last_payment = now()
+            self.save()
 
 
 class Checkin(models.Model):
-    user = models.ForeignKey(User, related_name='user_checkins')
+    user = models.ForeignKey('UserMeta', related_name='user_checkins')
     location = models.ForeignKey(Location, related_name='location_checkins')
     time = models.DateTimeField(default=now)
 
     def __unicode__(self):
-        return 'Checkin by user {} at {}'.format(self.user.id,
-                                                 self.location.name)
+        return 'Checkin by {} at {}'.format(self.user,
+                                            self.location.name)
 
     @classmethod
+    @transaction.commit_on_success
     def make_checkin(cls, user, location_id):
         loc = Location.objects.get(fb_id=location_id)
         cls.objects.create(
-            user_id=user.id,
+            user_id=user.meta.id,
             location_id=loc.id
         ).save()
         reward = LOCATION_REWARDS[loc.category]
@@ -151,6 +154,8 @@ class Checkin(models.Model):
         if loc.owner is None:
             loc.owner = user.meta
             loc.save()
+        user.meta.latest_location = loc
+        user.meta.save()
         return {
             'reward' : list(reward),
             'total' : list(user.meta.get_resources()),
@@ -161,6 +166,8 @@ class UserMeta(models.Model):
     user = models.OneToOneField(User, related_name='meta',
         primary_key=True)
     clan = models.ForeignKey(Clan, related_name='members',
+        blank=True, null=True)
+    latest_location = models.ForeignKey(Location, related_name='+',
         blank=True, null=True)
     fb_token = models.TextField()
     resourceA = models.FloatField(default=0)
@@ -385,19 +392,25 @@ class OngoingFight(models.Model):
                         new_owner = user
 
             pf = PastFight(location=self.location,
-                            old_owner=self.location.owner,
-                            new_owner=new_owner)
+                           old_owner=self.location.owner,
+                           new_owner=new_owner)
             pf.save()
             self.location.owner = new_owner
             self.location.save()
 
 
     def fighting_powers(self):
-        troops = cls.objects.filter(location=self.location) \
+        troops_A = cls.objects.filter(location=self.location) \
             .select_related('owner__clan').all()
+        users_in_location = UserMeta.objects.filter(
+            latest_location=self.location).all()
+        troops_B = cls.objects \
+            .filter(location=None, owner__in=users_in_location) \
+            .select_related('owner__clan').all()
+
         by_clan = {}
         by_user = {}
-        for t in troops:
+        for t in troops_A + troops_B:
             unit_power = UNIT_POWER[t.unit] * t.count
 
             if t.owner.clan is None:
@@ -412,6 +425,7 @@ class OngoingFight(models.Model):
                 by_user[t.owner] = 0
             by_user[t.owner] += unit_power
         return by_clan, by_user
+
 
 class PastFight(models.Model):
     location = models.ForeignKey(Location, related_name='past_fights')
