@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-  <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyA0oAWmuQLhX4cWSLZGWCP0U63FLk7gfPY&sensor=false">
-  </script>
+  <script src="http://maps.googleapis.com/maps/api/js?key=AIzaSyA0oAWmuQLhX4cWSLZGWCP0U63FLk7gfPY&sensor=false"></script>
+  <script src="/static/js/gmaps-utility-library/markerclustererplus/src/markerclusterer_packed.js"></script>
+  <script src="/static/js/gmaps-utility-library/geolocationmarker/src/geolocationmarker-compiled.js"></script>
 
   <script>
     var dir = {
@@ -17,7 +18,7 @@
       wood: dir.images + '/pin_wood.png',
     };
 
-    var map;
+    var map, mapCluster;
 
     var markers = [];
 
@@ -99,6 +100,12 @@
             { color: '#C7D9C3' }
           ]
         },
+        {
+          featureType: 'water',
+          stylers: [
+            { color: '#e2efff'}
+          ]
+        }
         // {
         //   featureType: "road",
         //   // elementType: "geometry",
@@ -138,8 +145,10 @@
       map.mapTypes.set('map_style', styledMap);
       map.setMapTypeId('map_style');
 
+      mapCluster = new MarkerClusterer(map, []);
+
       google.maps.event.addListener(map, "click", function(e){
-        add_location_marker('wood beer gold stone iron'.split(' ')[Math.floor(Math.random()*5)], e.latLng);
+        var m = add_location_marker('wood beer gold stone iron'.split(' ')[Math.floor(Math.random()*5)], e.latLng);
       });
     }
 
@@ -155,7 +164,12 @@
         map: map,
         icon: icons[type]
       });
+      
+      mapCluster.addMarker(marker, true);
+
+      console.log("tara: " + mapCluster.getMarkers());
       markers.append(marker);
+
       return marker;
     }
   </script>
