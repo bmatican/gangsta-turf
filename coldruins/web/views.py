@@ -132,7 +132,7 @@ def login_view(request, accessToken, userID, **kwargs):
 
 
 @ajax_decorator
-def checkin(request, location_id)
+def checkin(request, location_id):
   reward = Checkin.make_checkin(request.user, location_id)
   return _verdict_ok({'reward':reward})
 

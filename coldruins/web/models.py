@@ -2,6 +2,8 @@ from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.utils.timezone import now
 
+import datetime
+
 
 LOCATION_CATEGORIES = (
     (1, 'Food & Drinks'),
@@ -75,9 +77,23 @@ class Location(models.Model):
         blank=True, null=True)
     last_payment = models.DateTimeField(blank=True, null=True, default=None)
 
+    PAYMENT_PERIOD = 1
+
     def __unicode__(self):
         return '{} ({})'.format(
             self.name, dict(LOCATION_CATEGORIES)[self.category])
+
+    @classmethod
+    def make_pending_payments(cls):
+        when = now() - datetime.timedelta(hours=cls.PAYMENT_PERIOD)
+        for location in cls.objects.filter(last_payment__lt=when):
+            if location.owner is None:
+                continue
+
+            clan_member_cnt = location.owner.members.count()
+            reward = LOCATION_REWARD[location.category]
+            for clan_member in location.owner.members.all():
+                clan_member.add_resources(reward, 1.0 / clan_member_cnt)
 
 
 class Checkin(models.Model):
@@ -87,14 +103,14 @@ class Checkin(models.Model):
 
     @classmethod
     def make_checkin(cls, user, location_id):
-      loc = Location.objects.get(id=location_id)
-      cls.objects.create(
-        user_id=user.id,
-        location_id=location_id,
-      ).save()
-      reward = LOCATION_REWARDS[loc.category]
-      user.meta.add_resources(reward)
-      return reward
+        loc = Location.objects.get(id=location_id)
+        cls.objects.create(
+            user_id=user.id,
+            location_id=location_id,
+        ).save()
+        reward = LOCATION_REWARDS[loc.category]
+        user.meta.add_resources(reward, 3.0)
+        return reward
 
 
 class UserMeta(models.Model):
@@ -103,29 +119,26 @@ class UserMeta(models.Model):
     clan = models.ForeignKey(Clan, related_name='members',
         blank=True, null=True)
     fb_token = models.TextField()
-    resourceA = models.IntegerField(default=0)
-    resourceB = models.IntegerField(default=0)
-    resourceC = models.IntegerField(default=0)
-    resourceD = models.IntegerField(default=0)
-    resourceE = models.IntegerField(default=0)
-
-    def add_resources(self, resources):
-      for i in LOCATION_REWARDS.keys():
-        key = 'resource' + chr(ord('A') - 1 + i)
-        r = getattr(self, key)
-        setattr(self, key, (r + resources[i - 1]))
-
-    def subtract_resources(self, resources):
-      neg = resources
-      for i in xrange(len(resources)):
-        neg[i] = -resources[i]
-      self.add_resources(neg)
+    resourceA = models.FloatField(default=0)
+    resourceB = models.FloatField(default=0)
+    resourceC = models.FloatField(default=0)
+    resourceD = models.FloatField(default=0)
+    resourceE = models.FloatField(default=0)
 
     def __unicode__(self):
         return 'User {} of clan {}: ({}, {}, {}, {}, {})'.format(
             self.user, self.clan,
             self.resourceA, self.resourceB, self.resourceC,
             self.resourceD, self.resourceE)
+
+    def add_resources(self, resources, mult=1.0):
+        for i in LOCATION_REWARDS.keys():
+            key = 'resource' + chr(ord('A') - 1 + i)
+            r = getattr(self, key)
+            setattr(self, key, (r + resources[i - 1] * mult))
+
+    def subtract_resources(self, resources, mult=1):
+        self.add_resources(neg, -mult)
 
 
 class Troops(models.Model):
@@ -178,6 +191,11 @@ class TroopMovement(models.Model):
         self.lto = self.lfrom
         self.arrive_time = now() + (now() - self.leave_time)
         self.save()
+
+    @classmethod
+    def move_pending_troops(cls):
+        for tm in cls.objects.filter(arrive_time__gte=now()):
+            tm.troop_arrive()
 
 
 class OngoingFight(models.Model):
