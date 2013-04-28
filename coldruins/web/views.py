@@ -136,7 +136,9 @@ def login_view(request, accessToken, userID, **kwargs):
 
 @ajax_decorator
 def get_location_data(request, location_id):
-  pass
+  troops = Troops.get_troops()
+  return troops
+
 
 @ajax_decorator
 def buy_troops(request, unit_id, numbers):

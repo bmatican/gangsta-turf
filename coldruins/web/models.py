@@ -218,8 +218,9 @@ class Troops(models.Model):
         tm.save()
         self.delete()
 
-    def get_troops(self, location_id):
-        troops = Troops.objects.filter(location_id=location_id).all()
+    @classmethod
+    def get_troops(cls, location_id):
+        troops = cls.objects.filter(location_id=location_id).all()
         d = {}
         for t in troops:
             count = d.setdefault(t.unit, 0)
