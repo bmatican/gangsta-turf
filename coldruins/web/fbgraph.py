@@ -1,19 +1,24 @@
 import httplib2
 import json
 
+class TokenExpiredException:
+  pass
+
 def get_places(token, center, distance):
   url = 'https://graph.facebook.com/search?type=place'
   url = '{}&access_token={}&distance={}&center={}'.format(
     url,
     token,
     distance,
-    '{},{}'.format(center[0], center[1])
+    center,
   )
   places = []
   while True:
     _, content = httplib2.Http().request(url)
     content = json.loads(content)
-    data = content['data']
+    data = content.get('data')
+    if data == None:
+      raise TokenExpiredException
     if len(data) == 0:
       break
     url = content['paging']['next']
@@ -30,7 +35,7 @@ def get_places(token, center, distance):
 
   return places
 
-categories = {
+static_categories = {
   'Food/beverages':1,
   'Arts & Entertainment':2,
   'Shopping Mall':3,

@@ -1,35 +1,24 @@
 from django.contrib.auth import login, logout, authenticate
 from django.conf import settings
 from django.core.urlresolvers import reverse as url_reverse
+from django.core import serializers
 from django.db import transaction, IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, Http404
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import ensure_csrf_cookie
 import facebook
 
 import json
 
 from coldruins.web.decorators import *
-from coldruins.web.models import User, UserMeta
+from coldruins.web.models import User, UserMeta, Location
 from coldruins.web.fbgraph import *
 
 @ensure_csrf_cookie
 def home(request):
+  # return HttpResponse(request.user)
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read())
-
-def locations(request):
-  token = 'BAACEdEose0cBAE5X5Uq47awMD9keThPrZCZBQsWUzHvNuNgmY43EslangMfcuZAWdPZCrrVoZBKl9JUCQ9Yigt4HntyDzXuVx4AazxftqpLOZB1HY6SC11EM0xl7CXmZCusN0hAFEM5xMCpZBmCttKiO6HBaBuZBtPZC6uaRjjQPARRDQ7f0L3EcPc7EDnYfzqONp7ZA9umyfwjGpbTZB5C64ONEpPZBGE8OjFWSCjJgSTsw6SwZDZD'
-  center = (51.513855129521,-0.12574267294645)
-  distance = 500
-  places = get_places(token, center, distance)
-
-  categories = set()
-  for p in places:
-    categories.add(p['category'])
-    for c in p['category_list']:
-      categories.add(c['name'])
-  print categories
-  return HttpResponse(json.dumps(places))
 
 @require_POST
 def logout_view(request):
@@ -52,11 +41,71 @@ def _verdict_error(message):
     'message': message
   }
 
-
 @ajax_decorator
-def near_location(request, location):
-  return _verdict_ok({'received':location})
+def near_location(request, center, distance):
+  return _get_locations(request, center, distance)
 
+def _get_locations(request, center, distance):
+  # token = 'BAACEdEose0cBAKaRmOZBE29VpXfFHYgZCsWP2zyw7aoQ8GdZBeYtTMiAdbFitCYZA2FM34xoL7MkZC6cfoFQR0dTUx1sBpZCYnyrScZCyZCN4k2ZAMCo1rdS1sxYJqDYjbeOpPlANc1KEurCDSaSFWEbWHRPvOyHzZAZAPGyuMEzCVUQktFj9FdlDEHV0vGXh11ZA78iMdEuPYZBwyuwKaH6U5Fb2hcNeckuEzm9tBa6SZCWOsxAZDZD'
+  try:
+    user_meta = UserMeta.objects.get(user=request.user)
+    token = user_meta.fb_token
+  except UserMeta.DoesNotExist:
+    return _verdict_error('Invalid/missing token')
+  # center = '51.513855129521,-0.12574267294645'
+  # distance = 500
+  places = get_places(token, center, distance)
+  print places
+
+  response = []
+  for p in places:
+    try:
+      loc = Location.objects.get(fb_id=p['id'])
+      response.append(loc)
+      continue
+    except Location.DoesNotExist:
+      pass
+
+    try:
+      categories = [p['category']]
+      for c in [cat['name'] for cat in p['category_list']]:
+        categories.append(c)
+
+      category = 4 # sensible default :))
+      potential_cat = {}
+      for c in categories:
+        low = c.lower()
+        if 'restaurant' in low or \
+          ' bar' in low or \
+          'bar ' in low or \
+          'bar' == low:
+          category = 1
+          potential_cat = {}
+          break
+        elif c in static_categories:
+          key = static_categories[c]
+          val = potential_cat.setdefault(key, 0)
+          potential_cat[key] = val + 1
+      val_max = 0
+      # this gets ignored if we found a bar/restaurant
+      for cat, val in potential_cat.iteritems():
+        if val > val_max:
+          category = cat
+          val_max = val
+
+      l = Location(
+        fb_id = p['id'],
+        name = p['name'],
+        lat = p['latitude'],
+        lon = p['longitude'],
+        category = category
+      )
+      l.save()
+      response.append(l)
+    except IntegrityError:
+      pass
+  ret = serializers.serialize('json', response)
+  return _verdict_ok(ret)
 
 def login_view(request, accessToken, userID, **kwargs):
   try:

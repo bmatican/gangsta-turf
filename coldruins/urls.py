@@ -17,6 +17,4 @@ urlpatterns = patterns('',
   url(r'^data_provider/(?P<action>.+)$',
       'coldruins.web.views.data_provider',
       name='data-provider'),
-
-  url(r'^locations$', 'coldruins.web.views.locations', name='locations'),
 )
