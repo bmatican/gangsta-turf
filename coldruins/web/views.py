@@ -50,7 +50,7 @@ def login_view(request, accessToken, userID, **kwargs):
   except User.DoesNotExist:
     graph = facebook.GraphAPI(accessToken)
     profile = graph.get_object('me')
-    user = User.objects.create_user(userID, profile['email'], '')
+    user = User.objects.create_user(userID, profile['email'], userID)
     try:
       user.first_name = profile['first_name']
       user.last_name = profile['last_name']
@@ -64,7 +64,7 @@ def login_view(request, accessToken, userID, **kwargs):
     user_meta = UserMeta(user=user, fb_token=accessToken)
     user_meta.save()
 
-  user = authenticate(userID, '')
+  user = authenticate(username=userID, password=userID)
   login(request, user)
   return HttpResponseRedirect(url_reverse('home'))
 
