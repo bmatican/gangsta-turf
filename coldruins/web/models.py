@@ -87,6 +87,7 @@ class Location(models.Model):
         if clan != None:
           clan = clan.id
       return {
+        'db_id' : self.id,
         'fb_id' : self.fb_id,
         'name' : self.name,
         'lat' : self.lat,
@@ -199,11 +200,11 @@ class UserMeta(models.Model):
         else:
             return None
 
-    def buy_troops(self, unit_id, numbers):
+    def buy_troops(self, unit_id, count):
       if unit_id not in UNITS:
         return None
-      elif self._can_subtract(UNIT_PRICES[unit_id], numbers):
-        return self.subtract_resources(UNIT_PRICES[unit_id], numbers)
+      elif self._can_subtract(UNIT_PRICES[unit_id], count):
+        return self.subtract_resources(UNIT_PRICES[unit_id], count)
 
 
 class Troops(models.Model):
@@ -228,6 +229,26 @@ class Troops(models.Model):
             leave_time=now(), arrive_time=now() + distance)
         tm.save()
         self.delete()
+
+    @classmethod
+    def make_troops(cls, user_id, location_db_id, unit_id, count):
+      if unit_id in UNITS:
+        troops = cls.objects.filter(
+          owner_id=user_id,
+          location_id=location_db_id,
+          unit=unit_id
+        ).all()
+        if len(troops) > 0:
+          troops = troops[0]
+          troops.count += count
+          troops.save()
+        else:
+          cls.objects.create(
+            owner_id=user_id,
+            location_id=location_db_id,
+            unit=unit_id,
+            count=count
+          ).save()
 
     @classmethod
     def get_troops(cls, location_id):

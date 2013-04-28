@@ -142,6 +142,10 @@ def get_location_data(request, location_id):
   troops = Troops.get_troops(location_id)
   return troops
 
+@ajax_decorator
+def make_troops(request, location_db_id, unit_id, count):
+  Troops.make_troops(request.user.id, location_db_id, unit_id, count)
+
 
 @ajax_decorator
 def buy_troops(request, unit_id, numbers):
@@ -164,6 +168,7 @@ data_providers = {
   'login': login_view,
   'checkin': checkin,
   'buy_troops': buy_troops,
+  'make_troops': make_troops,
   'get_location_data': get_location_data,
 }
 
