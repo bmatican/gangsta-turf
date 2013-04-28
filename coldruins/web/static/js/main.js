@@ -239,19 +239,14 @@ function checkin(m) {
   });
 }
 
-function filter_sepia ($image) {
-  // $image.on('load.add-sepia', function () {}
-    return $image;
-}
-
 function checkin_overlay(m) {
   pullData('get_location_data', {location_id: m.location_db_id}, 'post', function(rsp) {
     $('.locationname').html(m.locationname);
     $('.content').html(
-      filter_sepia(jq_element('img').attr({
+      jq_element('img').attr({
         src: 'http://graph.facebook.com/'+m.locationid+'/picture?type=large',
         alt: 'url'
-      }))
+      })
     );
     var $container = $(document.createElement('div'));
     for (var i = 1; i <= 4; i++) {
