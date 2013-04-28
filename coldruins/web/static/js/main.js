@@ -41,11 +41,18 @@ var icons = {
 
 var units = [
   undefined,
-  'knights',
-  'moreknights',
-  'whatever',
-  'somethingelse'
+  'ballista',
+  'crossbowman',
+  'knight',
+  'pikeman'
 ]
+
+var IMG_UNIT = {
+  ballista: dir.images + '/unit-ballista.png',
+  crossbowman: dir.images + '/unit-crossbowman.png',
+  knight: dir.images + '/unit-knight.png',
+  pikeman: dir.images + '/unit-pikeman.png'
+}
 
 var map;
 
@@ -174,6 +181,7 @@ function initialize() {
             }
             add_location_marker(
               places[i].fb_id,
+              places[i].db_id,
               places[i].name,
               type,
               new google.maps.LatLng(places[i].lat, places[i].lon)
@@ -203,6 +211,17 @@ function initialize() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
+
+function createTroops (m, unit, num) {
+  pullData('make_troops', {
+    location_db_id: m.location_db_id,
+    unit_id: unit,
+    count: num
+  }, 'post', function(rsp) {
+    console.log(rsp);
+  });
+}
+
 function print_latLong (position) {
   return position.toString().slice(1).slice(0,-1).replace(/\s/g, '');
 }
@@ -217,26 +236,33 @@ function checkin(m) {
 }
 
 function checkin_overlay(m) {
-  pullData('get_location_data', {location_id: m.locationid}, 'post', function(rsp) {
+  pullData('get_location_data', {location_id: m.location_db_id}, 'post', function(rsp) {
     $('.locationname').html(m.locationname);
     var $container = $(document.createElement('div'));
-    console.log(rsp);
-    for (var i = 0; i < 5; i++) {
-      if (rsp.i) {
+    for (var i = 1; i <= 4; i++) {
+      if (rsp[i]) {
+        console.log(rsp[i]);
         var $tmp = $(document.createElement('div')).
-          append($(document.createElement('span')).html(units[i] + ": ")).
-          append($(document.createElement('span')).html(rsp.i));
+          append($(document.createElement('img')).attr('src', IMG_UNIT[units[i]]).addClass('unitsymbol')).
+          append($(document.createElement('span')).html(rsp[i]));
         $container.append($tmp);
       }
     }
+    $('.wrapper').append($container);
     $('.checkinbtn').click(function(e) {
       checkin(m);
+    });
+    $('.unit_gen').click(function(e) {
+      console.log(e);
+      var unit = $(e.currentTarget).attr('id').substr(5);
+      console.log(unit);
+      createTroops(m, unit, 1);
     });
     $('#overlay').fadeIn();
   });
 }
 
-function add_location_marker (id, name, type, location) {
+function add_location_marker (id, db_id, name, type, location) {
   if (!icons[type]) {
     console.warn('[add_location_marker] Unknown type :'+type);
     return null;
@@ -247,6 +273,7 @@ function add_location_marker (id, name, type, location) {
     icon: icons[type]
   });
   marker.locationid = id;
+  marker.location_db_id = db_id;
   marker.locationname = name;
   markers.push(marker);
   google.maps.event.addListener(marker, 'click', function(e) {

@@ -201,7 +201,7 @@ class UserMeta(models.Model):
             return None
 
     def buy_troops(self, unit_id, count):
-      if unit_id not in UNITS:
+      if int(unit_id) not in dict(UNITS):
         return None
       elif self._can_subtract(UNIT_PRICES[unit_id], count):
         return self.subtract_resources(UNIT_PRICES[unit_id], count)
@@ -232,12 +232,13 @@ class Troops(models.Model):
 
     @classmethod
     def make_troops(cls, user_id, location_db_id, unit_id, count):
-      if unit_id in UNITS:
+      if int(unit_id) in dict(UNITS):
         troops = cls.objects.filter(
           owner_id=user_id,
           location_id=location_db_id,
           unit=unit_id
         ).all()
+        print len(troops)
         if len(troops) > 0:
           troops = troops[0]
           troops.count += count
