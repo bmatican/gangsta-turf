@@ -293,6 +293,10 @@ function highlight_area (points) {
   area.setMap(map);
 }
 
+function jq_element (type) {
+  return $(document.createElement(type));
+}
+
 function add_location_marker (id, db_id, name, type, location) {
   if (!icons[type]) {
     console.warn('[add_location_marker] Unknown type :'+type);
