@@ -159,11 +159,8 @@ LOGGING = {
 }
 
 AUTHENTICATION_BACKENDS = (
-  'django_facebook.auth_backends.FacebookBackend',
   'django.contrib.auth.backends.ModelBackend',
 )
-
-AUTH_PROFILE_MODULE = 'django_facebook.FacebookProfile'
 
 """
 DEFAULT_LOCATION = '127.0.0.1:11211'

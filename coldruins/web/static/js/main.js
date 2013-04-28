@@ -14,11 +14,21 @@ var dir = {
 };
 
 var icons = {
-  gold: dir.images + '/pin_gold.png',
-  food: dir.images + '/pin_beer.png',
-  iron: dir.images + '/pin_iron.png',
-  stone: dir.images + '/pin_stone.png',
-  wood: dir.images + '/pin_wood.png',
+  gold: dir.images + '/pin_enemy_gold.png',
+  food: dir.images + '/pin_enemy_beer.png',
+  iron: dir.images + '/pin_enemy_iron.png',
+  stone: dir.images + '/pin_enemy_stone.png',
+  wood: dir.images + '/pin_enemy_wood.png',
+  gold_own: dir.images + '/pin_own_gold.png',
+  food_own: dir.images + '/pin_own_beer.png',
+  iron_own: dir.images + '/pin_own_iron.png',
+  ston_owne: dir.images + '/pin_own_stone.png',
+  wood_own: dir.images + '/pin_own_wood.png',
+  gold_clan: dir.images + '/pin_gold.png',
+  food_clan: dir.images + '/pin_beer.png',
+  iron_clan: dir.images + '/pin_iron.png',
+  stone_clan: dir.images + '/pin_stone.png',
+  wood_clan: dir.images + '/pin_wood.png',
 };
 
 var map;
@@ -126,17 +136,26 @@ function initialize() {
       map.panTo(center);
       pullData(
         'near_location', 
-        {center:print_latLong(center), 'distance': 100},
+        {center:print_latLong(center), 'distance': 200},
         'post', 
         function (response) {
           var marker = new google.maps.Marker({
             position: center,
-            map: map
+            map: map,
+            zIndex: 9999
           });
           var places = JSON.parse(response.message);
           for (var i=0; i<places.length; ++i) {
+            var type = CATEGORIES_MAP[places[i].fields.category];
+            if (places[i].owner != null) {
+              if (places[i].owner == FB.getUserID()) {
+                type += "_own";
+              } else if (true /*TODO: check for clan */) {
+                type += "_clan"; 
+              }
+            }
             add_location_marker(
-              CATEGORIES_MAP[places[i].fields.category],
+              type,
               new google.maps.LatLng(places[i].fields.lat, places[i].fields.lon)
             );
           };
