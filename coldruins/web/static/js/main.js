@@ -211,7 +211,6 @@ function initialize() {
 
 google.maps.event.addDomListener(window, 'load', initialize);
 
-
 function createTroops (m, unit, num) {
   pullData('make_troops', {
     location_db_id: m.location_db_id,
