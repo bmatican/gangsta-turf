@@ -25,7 +25,7 @@ def home(request):
     resources = list(request.user.meta.get_resources())
     user_data += '<script>window.userresources={}</script>'.format(resources)
     user_data += '<script>window.userattackingunits={}</script>'.format(
-        request.user.meta.get_attacking_units())
+        request.user.meta.get_attacking_troops())
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read() + user_data)
 

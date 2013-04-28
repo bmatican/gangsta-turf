@@ -222,7 +222,7 @@ class UserMeta(models.Model):
         return self.subtract_resources(UNIT_PRICES[unit_id], count)
 
     def get_attacking_troops(self):
-        troops = Troops.objects.filter(user=self, location=None)
+        troops = Troops.objects.filter(owner=self, location=None)
         d = {}
         for t in troops:
             count = d.setdefault(t.unit, 0)
