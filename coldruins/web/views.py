@@ -21,6 +21,8 @@ def home(request):
     user_data = '<script>window.userid={}</script>'.format(request.user.id)
     if request.user.meta.clan != None:
       user_data += '<script>window.userclan={}</script>'.format(request.user.meta.clan.id)
+    resources = list(request.user.meta.get_resources())
+    user_data += '<script>window.userresources={}</script>'.format(resources)
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read() + user_data)
 
@@ -149,7 +151,7 @@ def buy_troops(request, unit_id, numbers):
     if remaining == None:
       return _verdict_error('Not enough resources')
     else:
-      return _verdict_ok({'resources_left': remaining})
+      return _verdict_ok({'resources_left': list(remaining)})
 
 @ajax_decorator
 def checkin(request, location_id):
