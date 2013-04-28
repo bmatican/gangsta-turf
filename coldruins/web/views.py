@@ -17,8 +17,10 @@ from coldruins.web.fbgraph import *
 @ensure_csrf_cookie
 def home(request):
   user_data = ''
-  if request.user != None:
+  if request.user != None and request.user.is_authenticated():
     user_data = '<script>window.userid={}</script>'.format(request.user.id)
+    if request.user.meta.clan != None:
+      user_data += '<script>window.userclan={}</script>'.format(request.user.meta.clan.id)
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read() + user_data)
 

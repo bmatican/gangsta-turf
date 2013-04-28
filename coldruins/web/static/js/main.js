@@ -22,7 +22,7 @@ var icons = {
   gold_own: dir.images + '/pin_own_gold.png',
   food_own: dir.images + '/pin_own_beer.png',
   iron_own: dir.images + '/pin_own_iron.png',
-  ston_owne: dir.images + '/pin_own_stone.png',
+  stone_owne: dir.images + '/pin_own_stone.png',
   wood_own: dir.images + '/pin_own_wood.png',
   gold_clan: dir.images + '/pin_gold.png',
   food_clan: dir.images + '/pin_beer.png',
@@ -157,6 +157,7 @@ function initialize() {
             }
             add_location_marker(
               places[i].fields.fb_id,
+              places[i].fields.name,
               type,
               new google.maps.LatLng(places[i].fields.lat, places[i].fields.lon)
             );
@@ -195,7 +196,12 @@ function checkin(m) {
   });
 }
 
-function add_location_marker (id, type, location) {
+function checkin_overlay(m) {
+  $('.locationname').html(m.locationname);
+  $('#overlay').fadeIn();
+}
+
+function add_location_marker (id, name, type, location) {
   if (!icons[type]) {
     console.warn('[add_location_marker] Unknown type :'+type);
     return null;
@@ -206,9 +212,10 @@ function add_location_marker (id, type, location) {
     icon: icons[type]
   });
   marker.locationid = id;
+  marker.locationname = name;
   markers.push(marker);
   google.maps.event.addListener(marker, 'click', function(e) {
-    checkin(marker);
+    checkin_overlay(marker);
   });
   return marker;
 }
