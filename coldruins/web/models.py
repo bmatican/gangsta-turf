@@ -138,11 +138,9 @@ class Checkin(models.Model):
         if loc.owner == None:
             loc.owner = user.meta
             loc.save()
-        print 'here'
-        print user.meta.get_resources()
         return {
-            'reward' : reward,
-            'total' : user.meta.get_resources()
+            'reward' : list(reward),
+            'total' : list(user.get_resources()),
         }
 
     def __unicode__(self):
