@@ -27,12 +27,13 @@ UNITS = (
     (2, 'Unit 3'),
     (3, 'Unit 3'),
     (4, 'Unit 4'),
-    (5, 'Unit 5'),
-    (6, 'Unit 6'),
-    (7, 'Unit 7'),
-    (8, 'Unit 8'),
-    (9, 'Unit 9'),
-    (10, 'Unit 10'),
+)
+
+UNIT_PRICES = (
+    (1, (1, 1, 0, 0, 0)),
+    (2, (2, 1, 1, 0, 0)),
+    (3, (3, 0, 1, 1, 0)),
+    (4, (4, 0, 0, 1, 1)),
 )
 
 
@@ -41,12 +42,6 @@ UNIT_POWER = dict((
     (2, 2),
     (3, 3),
     (4, 4),
-    (5, 5),
-    (6, 6),
-    (7, 7),
-    (8, 8),
-    (9, 9),
-    (10, 10),
 ))
 
 
@@ -73,7 +68,7 @@ class Location(models.Model):
     lon = models.FloatField()
     lat = models.FloatField()
     category = models.IntegerField(choices=LOCATION_CATEGORIES)
-    owner = models.ForeignKey(Clan, related_name='owned_locations',
+    owner = models.ForeignKey(UserMeta, related_name='owned_locations',
         blank=True, null=True)
     last_payment = models.DateTimeField(blank=True, null=True, default=None)
 
@@ -89,11 +84,19 @@ class Location(models.Model):
         for location in cls.objects.filter(last_payment__lt=when):
             if location.owner is None:
                 continue
+            location.make_clan_payment()
 
-            clan_member_cnt = location.owner.members.count()
-            reward = LOCATION_REWARD[location.category]
-            for clan_member in location.owner.members.all():
-                clan_member.add_resources(reward, 1.0 / clan_member_cnt)
+    def make_clan_payment(self):
+        clan = self.owner.clan
+        clan_member_cnt = clan.members.count()
+        reward = LOCATION_REWARD[self.category]
+        multiplier = 1.0
+        for clan_member in clan.members.all():
+            mul = multiplier
+            # twice for the owner...
+            if clan_member.id == self.owner.id:
+                mul = 2 * multiplier
+            clan_member.add_resources(reward, mul / clan_member_cnt)
 
 
 class Checkin(models.Model):
@@ -109,7 +112,8 @@ class Checkin(models.Model):
             location_id=location_id,
         ).save()
         reward = LOCATION_REWARDS[loc.category]
-        user.meta.add_resources(reward, 3.0)
+        user.meta.add_resources(reward, 1.0)
+        loc.make_clan_payment()
         return reward
 
 
@@ -132,13 +136,35 @@ class UserMeta(models.Model):
             self.resourceD, self.resourceE)
 
     def add_resources(self, resources, mult=1.0):
+        backup = resources
         for i in LOCATION_REWARDS.keys():
             key = 'resource' + chr(ord('A') - 1 + i)
             r = getattr(self, key)
-            setattr(self, key, (r + resources[i - 1] * mult))
+            newr = (r + resources[i - 1] * mult)
+            backup[i - 1] = newr
+            setattr(self, key, newr)
+        self.save()
+        return backup
+
+    def _can_subtract(self, resources, mult=1.0):
+        for i in LOCATION_REWARDS.keys():
+            key = 'resource' + chr(ord('A') - 1 + i)
+            r = getattr(self, key)
+            if r < resources[i - 1] * mult:
+              return False
+        return True
 
     def subtract_resources(self, resources, mult=1):
-        self.add_resources(neg, -mult)
+        if self._can_subtract(resources, mult):
+            return self.add_resources(neg, -mult)
+        else:
+            return None
+
+    def buy_troops(self, unit_id, numbers):
+      if unit_id not in UNITS:
+        return None
+      elif self._can_subtract(UNIT_PRICES[unit_id], numbers):
+        return self.subtract_resources(UNIT_PRICES[unit_id], numbers)
 
 
 class Troops(models.Model):

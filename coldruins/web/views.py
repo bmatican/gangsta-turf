@@ -132,6 +132,17 @@ def login_view(request, accessToken, userID, **kwargs):
 
 
 @ajax_decorator
+def buy_troops(request, unit_id, numbers):
+  if unit_id not in UNITS:
+    return _verdict_error('Invalid unit id')
+  else:
+    remaining = request.user.meta.buy_troops(unit_id, numbers)
+    if remaining == None:
+      return _verdict_error('Not enough resources')
+    else:
+      return _verdict_ok({'resources_left': remaining})
+
+@ajax_decorator
 def checkin(request, location_id):
   reward = Checkin.make_checkin(request.user, location_id)
   return _verdict_ok({'reward':reward})
@@ -140,6 +151,7 @@ data_providers = {
   'near_location': near_location,
   'login': login_view,
   'checkin': checkin,
+  'buy_troops': buy_troops,
 }
 
 
