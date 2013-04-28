@@ -3,7 +3,7 @@ jQuery(function jquery_dom_loaded () {
 });
 
 window.facebook_logged_in = function facebook_logged_in (authResponse) {
-  FB.api('/me', function facebook_api_callback (response) {
+  FB.api('/me?fields=id,first_name,last_name,picture', function facebook_api_callback (response) {
     $('#user').html(response.first_name+' '+response.last_name);
     $('#user_img').attr('src', response.picture.data.url);
   });
@@ -15,7 +15,7 @@ var dir = {
 
 var icons = {
   gold: dir.images + '/pin_gold.png',
-  beer: dir.images + '/pin_beer.png',
+  food: dir.images + '/pin_beer.png',
   iron: dir.images + '/pin_iron.png',
   stone: dir.images + '/pin_stone.png',
   wood: dir.images + '/pin_wood.png',
@@ -24,6 +24,9 @@ var icons = {
 var map;
 
 var markers = [];
+
+var CATEGORIES = [undefined, 'Food & Drinks', 'Arts & Entertainment', 'Shopping & Retail', 'Companies & Education', 'Attractions'];
+var CATEGORIES_MAP = [undefined, 'food', 'gold', 'wood', 'iron', 'stone'];
 
 function initialize() {
 
@@ -116,11 +119,37 @@ function initialize() {
   var styledMap = new google.maps.StyledMapType(styles,
     {name: "Styled Map"});
 
+  var center = new google.maps.LatLng(51.52038666, -0.15483856);
+  if (navigator && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function get_position (position) {
+      center = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+      map.panTo(center);
+      pullData(
+        'near_location', 
+        {center:print_latLong(center), 'distance': 100},
+        'post', 
+        function (response) {
+          var marker = new google.maps.Marker({
+            position: center,
+            map: map
+          });
+          var places = JSON.parse(response.message);
+          for (var i=0; i<places.length; ++i) {
+            add_location_marker(
+              CATEGORIES_MAP[places[i].fields.category],
+              new google.maps.LatLng(places[i].fields.lat, places[i].fields.lon)
+            );
+          };
+        }
+      );
+    });
+  }
+
   // Create a map object, and include the MapTypeId to add
   // to the map type control.
   var mapOptions = {
     zoom: 15,
-    center: new google.maps.LatLng(51.52038666, -0.15483856),
+    center: center,
     mapTypeControlOptions: {
       mapTypeIds: [google.maps.MapTypeId.ROADMAP, 'map_style']
     }
@@ -131,13 +160,13 @@ function initialize() {
   //Associate the styled map with the MapTypeId and set it to display.
   map.mapTypes.set('map_style', styledMap);
   map.setMapTypeId('map_style');
-
-  google.maps.event.addListener(map, "click", function(e){
-    add_location_marker('wood beer gold stone iron'.split(' ')[Math.floor(Math.random()*5)], e.latLng);
-  });
 }
 
 google.maps.event.addDomListener(window, 'load', initialize);
+
+function print_latLong (position) {
+  return position.toString().slice(1).slice(0,-1).replace(/\s/g, '');
+}
 
 function add_location_marker (type, location) {
   if (!icons[type]) {
