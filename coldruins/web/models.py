@@ -87,16 +87,18 @@ class Location(models.Model):
             location.make_clan_payment()
 
     def make_clan_payment(self):
-        clan = self.owner.clan
-        clan_member_cnt = clan.members.count()
-        reward = LOCATION_REWARD[self.category]
-        multiplier = 1.0
-        for clan_member in clan.members.all():
-            mul = multiplier
-            # twice for the owner...
-            if clan_member.id == self.owner.id:
-                mul = 2 * multiplier
-            clan_member.add_resources(reward, mul / clan_member_cnt)
+        if self.owner != None:
+            clan = self.owner.clan
+            if clan != None:
+                clan_member_cnt = clan.members.count()
+                reward = LOCATION_REWARD[self.category]
+                multiplier = 1.0
+                for clan_member in clan.members.all():
+                    mul = multiplier
+                    # twice for the owner...
+                    if clan_member.id == self.owner.id:
+                        mul = 2 * multiplier
+                    clan_member.add_resources(reward, mul / clan_member_cnt)
 
 
 class Checkin(models.Model):
@@ -109,12 +111,19 @@ class Checkin(models.Model):
         loc = Location.objects.get(fb_id=location_id)
         cls.objects.create(
             user_id=user.id,
-            location_id=location_id,
+            location_id=loc.id
         ).save()
         reward = LOCATION_REWARDS[loc.category]
         user.meta.add_resources(reward, 1.0)
         loc.make_clan_payment()
+        if loc.owner == None:
+          loc.owner = user.meta
+          loc.save()
         return reward
+
+    def __unicode__(self):
+      return 'Checkin by user {} at {}'.format(self.user.id, self.location.name)
+
 
 
 class UserMeta(models.Model):
@@ -136,7 +145,7 @@ class UserMeta(models.Model):
             self.resourceD, self.resourceE)
 
     def add_resources(self, resources, mult=1.0):
-        backup = resources
+        backup = list(resources)
         for i in LOCATION_REWARDS.keys():
             key = 'resource' + chr(ord('A') - 1 + i)
             r = getattr(self, key)
@@ -144,7 +153,7 @@ class UserMeta(models.Model):
             backup[i - 1] = newr
             setattr(self, key, newr)
         self.save()
-        return backup
+        return tuple(backup)
 
     def _can_subtract(self, resources, mult=1.0):
         for i in LOCATION_REWARDS.keys():
@@ -169,67 +178,34 @@ class UserMeta(models.Model):
 
 class Troops(models.Model):
     owner = models.ForeignKey(UserMeta, related_name='troops')
-    location = models.ForeignKey(Location, related_name='troops',
-        blank=True, null=True)
     unit = models.IntegerField(choices=UNITS)
     count = models.IntegerField(default=1)
+    location = models.ForeignKey(Location, related_name='troops')
 
     class Meta:
         verbose_name_plural = 'troops'
-        unique_together = (('owner', 'location', 'unit'),)
 
     def __unicode__(self):
         return '{} x {} belonging to {} stationed in {}'.format(
             self.count, self.unit, self.owner, self.location)
 
-    @staticmethod
-    def update_count(owner, location, unit, delta):
-        try:
-            t = Troops.objects.get(owner=owner, location=location, unit=unit)
-        except Troops.DoesNotExist:
-            t = Troops(owner=owner, location=location, unit=unit,
-                       count=0)
-        t.count += delta
-
-        assert t.count >= 0
-        if t.count == 0:
-            t.delete()
-        else:
-            t.save()
-
     @transaction.commit_on_success
-    def move(self, where, count=None):
-        assert self.location is not None
-
-        if count is None:
-            count = self.count
-
+    def move(self, where):
         distance = 10          # FIXME
         tm = TroopMovement(
-            owner=self.owner, unit=self.unit, count=count,
+            owner=self.owner, unit=self.unit, count=self.count,
             lfrom=self.location, lto=where,
             leave_time=now(), arrive_time=now() + distance)
         tm.save()
+        self.delete()
 
-        Troops.update_count(self.owner, self.location, self.unit, -count)
-
-    @transaction.commit_on_success
-    def station(self, where, count=None):
-        assert self.location is None
-
-        if count is None:
-            count = self.count
-        Troops.update_count(self.owner, where, self.unit, count)
-        Troops.update_count(self.owner, None, self.unit, -count)
-
-    @transaction.commit_on_success
-    def pickup(self, where, count=None):
-        assert self.location is not None
-
-        if count is None:
-            count = self.count
-        Troops.update_count(self.owner, None, self.unit, count)
-        Troops.update_count(self.owner, self.location, self.unit, -count)
+    def get_troops(self, location_id):
+        troops = Troops.objects.filter(location_id=location_id).all()
+        d = {}
+        for t in troops:
+            count = d.setdefault(t.unit, 0)
+            d[t.unit] = count + t.count
+        return d
 
 
 class TroopMovement(models.Model):
@@ -248,9 +224,9 @@ class TroopMovement(models.Model):
     @transaction.commit_on_success
     def troop_arrive(self):
         assert self.arrive_time <= now()
-        Troops.update_count(
-            owner=self.owner, unit=self.unit, location=self.lto,
-            delta=self.count)
+        t = Troops(owner=self.owner, unit=self.unit, count=self.count,
+                   location=self.lto)
+        t.save()
         self.delete()
 
     def troop_send_back(self):

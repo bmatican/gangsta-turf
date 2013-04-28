@@ -16,8 +16,11 @@ from coldruins.web.fbgraph import *
 
 @ensure_csrf_cookie
 def home(request):
+  user_data = ''
+  if request.user != None:
+    user_data = '<script>window.userid={}</script>'.format(request.user.id)
   return HttpResponse(
-      open('coldruins/web/static/index.html', 'rt').read())
+      open('coldruins/web/static/index.html', 'rt').read() + user_data)
 
 @require_POST
 def logout_view(request):
@@ -54,7 +57,6 @@ def _get_locations(request, center, distance):
   # center = '51.513855129521,-0.12574267294645'
   # distance = 500
   places = get_places(token, center, distance)
-  print places
 
   response = []
   for p in places:
@@ -130,6 +132,9 @@ def login_view(request, accessToken, userID, **kwargs):
   login(request, user)
   return HttpResponseRedirect(url_reverse('home'))
 
+@ajax_decorator
+def get_location_data(request, location_id):
+  pass
 
 @ajax_decorator
 def buy_troops(request, unit_id, numbers):
@@ -145,6 +150,7 @@ def buy_troops(request, unit_id, numbers):
 @ajax_decorator
 def checkin(request, location_id):
   reward = Checkin.make_checkin(request.user, location_id)
+  print location_id
   return _verdict_ok({'reward':reward})
 
 data_providers = {
@@ -152,6 +158,7 @@ data_providers = {
   'login': login_view,
   'checkin': checkin,
   'buy_troops': buy_troops,
+  'get_location_data': get_location_data,
 }
 
 

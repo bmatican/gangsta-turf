@@ -147,8 +147,9 @@ function initialize() {
           var places = JSON.parse(response.message);
           for (var i=0; i<places.length; ++i) {
             var type = CATEGORIES_MAP[places[i].fields.category];
-            if (places[i].owner != null) {
-              if (places[i].owner == FB.getUserID()) {
+            if (places[i].fields.owner != null) {
+              console.log(places[i].fields);
+              if (places[i].fields.owner == window.userid) {
                 type += "_own";
               } else if (true /*TODO: check for clan */) {
                 type += "_clan"; 
