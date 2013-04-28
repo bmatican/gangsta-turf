@@ -12,7 +12,8 @@ window.facebook_logged_in = function facebook_logged_in (authResponse) {
     $('#user').html(response.first_name+' '+response.last_name);
     $('#user_img').attr('src', response.picture.data.url);
     for(var i=0; i <= 4; i++) {
-      $('output.'+CATEGORIES_MAP[i+1]).html(window.userresources[i]);
+      if (window.userresources[i])
+        $('output.'+CATEGORIES_MAP[i+1]).html(window.userresources[i]);
     }
   });
 }
@@ -235,6 +236,10 @@ function checkin(m) {
     for(var i=0; i <= 4; i++) {
       $('output.'+CATEGORIES_MAP[i+1]).html(rsp.message.total[i]);
     }
+    var image = m.getIcon().toString();
+    image = image.replace("_enemy_", "_own_");
+    m.setIcon(image);
+    //TODO add to convex hull
     $('#overlay').fadeOut();
   });
 }
