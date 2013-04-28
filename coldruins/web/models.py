@@ -68,7 +68,7 @@ class Location(models.Model):
     lon = models.FloatField()
     lat = models.FloatField()
     category = models.IntegerField(choices=LOCATION_CATEGORIES)
-    owner = models.ForeignKey(UserMeta, related_name='owned_locations',
+    owner = models.ForeignKey('UserMeta', related_name='owned_locations',
         blank=True, null=True)
     last_payment = models.DateTimeField(blank=True, null=True, default=None)
 
