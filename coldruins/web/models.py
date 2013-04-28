@@ -36,7 +36,6 @@ UNIT_PRICES = (
     (4, (4, 0, 0, 1, 1)),
 )
 
-
 UNIT_POWER = dict((
     (1, 1),
     (2, 2),
@@ -105,13 +104,17 @@ class Location(models.Model):
             if location.owner is None:
                 continue
             location.make_clan_payment()
+        for location in cls.objects.filter(last_payment=None):
+            if location.owner is None:
+                continue
+            location.make_clan_payment()
 
     def make_clan_payment(self):
-        if self.owner != None:
+        if self.owner is not None:
             clan = self.owner.clan
-            if clan != None:
+            if clan is not None:
                 clan_member_cnt = clan.members.count()
-                reward = LOCATION_REWARD[self.category]
+                reward = LOCATION_REWARDS[self.category]
                 multiplier = 1.0
                 for clan_member in clan.members.all():
                     mul = multiplier
@@ -119,12 +122,20 @@ class Location(models.Model):
                     if clan_member.id == self.owner.id:
                         mul = 2 * multiplier
                     clan_member.add_resources(reward, mul / clan_member_cnt)
+            else:
+                reward = LOCATION_REWARDS[self.category]
+                multiplier = 2.0
+                self.owner.add_resources(reward, multiplier)
 
 
 class Checkin(models.Model):
     user = models.ForeignKey(User, related_name='user_checkins')
     location = models.ForeignKey(Location, related_name='location_checkins')
-    time = models.DateTimeField(auto_now_add=True)
+    time = models.DateTimeField(default=now)
+
+    def __unicode__(self):
+        return 'Checkin by user {} at {}'.format(self.user.id,
+                                                 self.location.name)
 
     @classmethod
     def make_checkin(cls, user, location_id):
@@ -143,10 +154,6 @@ class Checkin(models.Model):
             'reward' : list(reward),
             'total' : list(user.meta.get_resources()),
         }
-
-    def __unicode__(self):
-      return 'Checkin by user {} at {}'.format(self.user.id, self.location.name)
-
 
 
 class UserMeta(models.Model):
@@ -209,47 +216,72 @@ class UserMeta(models.Model):
 
 class Troops(models.Model):
     owner = models.ForeignKey(UserMeta, related_name='troops')
+    location = models.ForeignKey(Location, related_name='troops',
+        blank=True, null=True)
     unit = models.IntegerField(choices=UNITS)
     count = models.IntegerField(default=1)
-    location = models.ForeignKey(Location, related_name='troops')
 
     class Meta:
         verbose_name_plural = 'troops'
+        unique_together = (('owner', 'location', 'unit'),)
 
     def __unicode__(self):
         return '{} x {} belonging to {} stationed in {}'.format(
             self.count, self.unit, self.owner, self.location)
 
+    @staticmethod
+    def update_count(owner, location, unit, delta):
+        try:
+            t = Troops.objects.get(owner=owner, location=location, unit=unit)
+        except Troops.DoesNotExist:
+            t = Troops(owner=owner, location=location, unit=unit,
+                       count=0)
+        t.count += delta
+
+        assert t.count >= 0
+        if t.count == 0:
+            t.delete()
+        else:
+            t.save()
+
     @transaction.commit_on_success
-    def move(self, where):
+    def move(self, where, count=None):
+        assert self.location is not None
+
+        if count is None:
+            count = self.count
+
         distance = 10          # FIXME
         tm = TroopMovement(
-            owner=self.owner, unit=self.unit, count=self.count,
+            owner=self.owner, unit=self.unit, count=count,
             lfrom=self.location, lto=where,
             leave_time=now(), arrive_time=now() + distance)
         tm.save()
-        self.delete()
+
+        Troops.update_count(self.owner, self.location, self.unit, -count)
+
+    @transaction.commit_on_success
+    def station(self, where, count=None):
+        assert self.location is None
+
+        if count is None:
+            count = self.count
+        Troops.update_count(self.owner, where, self.unit, count)
+        Troops.update_count(self.owner, None, self.unit, -count)
+
+    @transaction.commit_on_success
+    def pickup(self, where, count=None):
+        assert self.location is not None
+
+        if count is None:
+            count = self.count
+        Troops.update_count(self.owner, None, self.unit, count)
+        Troops.update_count(self.owner, self.location, self.unit, -count)
 
     @classmethod
     def make_troops(cls, user_id, location_db_id, unit_id, count):
-      if int(unit_id) in dict(UNITS):
-        troops = cls.objects.filter(
-          owner_id=user_id,
-          location_id=location_db_id,
-          unit=unit_id
-        ).all()
-        print len(troops)
-        if len(troops) > 0:
-          troops = troops[0]
-          troops.count += count
-          troops.save()
-        else:
-          cls.objects.create(
-            owner_id=user_id,
-            location_id=location_db_id,
-            unit=unit_id,
-            count=count
-          ).save()
+        if int(unit_id) in dict(UNITS):
+            Troops.update_count(user_id, location_db_id, unit_id, count)
 
     @classmethod
     def get_troops(cls, location_id):
@@ -277,9 +309,9 @@ class TroopMovement(models.Model):
     @transaction.commit_on_success
     def troop_arrive(self):
         assert self.arrive_time <= now()
-        t = Troops(owner=self.owner, unit=self.unit, count=self.count,
-                   location=self.lto)
-        t.save()
+        Troops.update_count(
+            owner=self.owner, unit=self.unit, location=self.lto,
+            delta=self.count)
         self.delete()
 
     def troop_send_back(self):
@@ -296,8 +328,28 @@ class TroopMovement(models.Model):
 
 class OngoingFight(models.Model):
     location = models.OneToOneField(Location, related_name='ongoing_fight')
-    offender = models.ForeignKey(Clan, related_name='+')
     start = models.DateTimeField(default=now)
+
+    FIGHT_DURATION = 0.5
+
+    @classmethod
+    def end_pending_fights(cls):
+        when = now() - datetime.timedelta(hours=cls.FIGHT_DURATION)
+        for fight in cls.objects.filter(start__lt=when):
+            fight.end_fight()
+
+    def end_fight(self):
+        assert \
+            self.start + datetime.timedelta(hours=cls.FIGHT_DURATION) >= now()
+
+        powers_by_clan = self.powers_by_clan()
+
+        # TODO
+        pass
+
+    def powers_by_clan(self):
+        # TODO
+        pass
 
 
 class PastFight(models.Model):
