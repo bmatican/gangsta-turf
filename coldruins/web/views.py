@@ -136,7 +136,9 @@ def login_view(request, accessToken, userID, **kwargs):
 
 @ajax_decorator
 def get_location_data(request, location_id):
-  pass
+  troops = Troops.get_troops()
+  return troops
+
 
 @ajax_decorator
 def buy_troops(request, unit_id, numbers):
@@ -151,9 +153,8 @@ def buy_troops(request, unit_id, numbers):
 
 @ajax_decorator
 def checkin(request, location_id):
-  reward = Checkin.make_checkin(request.user, location_id)
-  print location_id
-  return _verdict_ok({'reward':reward})
+  response = Checkin.make_checkin(request.user, location_id)
+  return _verdict_ok(response)
 
 data_providers = {
   'near_location': near_location,

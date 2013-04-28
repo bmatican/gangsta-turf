@@ -136,9 +136,12 @@ class Checkin(models.Model):
         user.meta.add_resources(reward, 1.0)
         loc.make_clan_payment()
         if loc.owner == None:
-          loc.owner = user.meta
-          loc.save()
-        return reward
+            loc.owner = user.meta
+            loc.save()
+        return {
+            'reward' : reward,
+            'total' : user.get_resources()
+        }
 
     def __unicode__(self):
       return 'Checkin by user {} at {}'.format(self.user.id, self.location.name)
@@ -162,6 +165,14 @@ class UserMeta(models.Model):
             self.user, self.clan,
             self.resourceA, self.resourceB, self.resourceC,
             self.resourceD, self.resourceE)
+
+    def get_resources(self):
+        res = LOCATION_REWARDS[1] # something to fill up
+        for i in LOCATION_REWARDS.keys():
+            key = 'resource' + chr(ord('A') - 1 + i)
+            r = getattr(self, key)
+            res[i - 1] = r
+        return res
 
     def add_resources(self, resources, mult=1.0):
         backup = list(resources)
@@ -218,8 +229,9 @@ class Troops(models.Model):
         tm.save()
         self.delete()
 
-    def get_troops(self, location_id):
-        troops = Troops.objects.filter(location_id=location_id).all()
+    @classmethod
+    def get_troops(cls, location_id):
+        troops = cls.objects.filter(location_id=location_id).all()
         d = {}
         for t in troops:
             count = d.setdefault(t.unit, 0)
