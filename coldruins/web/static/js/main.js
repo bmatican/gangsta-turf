@@ -163,6 +163,10 @@ function initialize() {
         {center:print_latLong(center), 'distance': 200},
         'post', 
         function (response) {
+          if (response.verdict == 'error') {
+            console.warn('An error has occured: ', response.message)
+            return;
+          }
           var marker = new google.maps.Marker({
             position: center,
             map: map,
@@ -191,8 +195,10 @@ function initialize() {
             );
           };
           var hull = [];
-          chainHull_2D(own_places, own_places.length, hull);
-          highlight_area(hull);
+          if (own_places.length > 2) {
+            chainHull_2D(own_places, own_places.length, hull);
+            highlight_area(hull);
+          }
         }
       );
     });
