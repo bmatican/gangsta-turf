@@ -206,9 +206,10 @@ function print_latLong (position) {
 
 function checkin(m) {
   pullData('checkin', {location_id: m.locationid}, 'post', function(rsp) {
-    for(var i=1; i <= 5; i++) {
-      
+    for(var i=0; i <= 4; i++) {
+      $('output.'+CATEGORIES_MAP[i+1]).html(rsp.message.total[i]);
     }
+    $('#overlay').fadeOut();
   });
 }
 
@@ -217,11 +218,13 @@ function checkin_overlay(m) {
     $('.locationname').html(m.locationname);
     var $container = $(document.createElement('div'));
     console.log(rsp);
-    for (var i = 1; i <= 4; i++) {
-      var $tmp = $(document.createElement('div')).
-        append($(document.createElement('span')).html(units[i] + ": ")).
-        append($(document.createElement('span')).html(rsp.i));
-      $container.append($tmp);
+    for (var i = 0; i < 5; i++) {
+      if (rsp.i) {
+        var $tmp = $(document.createElement('div')).
+          append($(document.createElement('span')).html(units[i] + ": ")).
+          append($(document.createElement('span')).html(rsp.i));
+        $container.append($tmp);
+      }
     }
     $('.checkinbtn').click(function(e) {
       checkin(m);

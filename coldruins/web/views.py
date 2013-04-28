@@ -138,7 +138,7 @@ def login_view(request, accessToken, userID, **kwargs):
 
 @ajax_decorator
 def get_location_data(request, location_id):
-  troops = Troops.get_troops()
+  troops = Troops.get_troops(location_id)
   return troops
 
 

@@ -140,7 +140,7 @@ class Checkin(models.Model):
             loc.save()
         return {
             'reward' : list(reward),
-            'total' : list(user.get_resources()),
+            'total' : list(user.meta.get_resources()),
         }
 
     def __unicode__(self):
