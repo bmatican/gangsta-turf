@@ -221,6 +221,14 @@ class UserMeta(models.Model):
       elif self._can_subtract(UNIT_PRICES[unit_id], count):
         return self.subtract_resources(UNIT_PRICES[unit_id], count)
 
+    def get_attacking_troops(self):
+        troops = Troops.objects.filter(user=self, location=None)
+        d = {}
+        for t in troops:
+            count = d.setdefault(t.unit, 0)
+            d[t.unit] = count + t.count
+        return d
+
 
 class Troops(models.Model):
     owner = models.ForeignKey(UserMeta, related_name='troops')

@@ -24,6 +24,8 @@ def home(request):
       user_data += '<script>window.userclan={}</script>'.format(request.user.meta.clan.id)
     resources = list(request.user.meta.get_resources())
     user_data += '<script>window.userresources={}</script>'.format(resources)
+    user_data += '<script>window.userattackingunits={}</script>'.format(
+        request.user.meta.get_attacking_units())
   return HttpResponse(
       open('coldruins/web/static/index.html', 'rt').read() + user_data)
 
@@ -156,6 +158,7 @@ def buy_troops(request, unit_id, numbers):
     else:
       return _verdict_ok({'resources_left': list(remaining)})
 
+
 @ajax_decorator
 def checkin(request, location_id):
   response = Checkin.make_checkin(request.user, location_id)
@@ -168,12 +171,15 @@ def facepile(request):
   return _verdict_ok(g.friends())
 
 data_providers = {
-  'near_location': near_location,
   'login': login_view,
-  'checkin': checkin,
+  'near_location': near_location,
+
   'buy_troops': buy_troops,
   'make_troops': make_troops,
+
   'get_location_data': get_location_data,
+  'checkin': checkin,
+
   'facepile' : facepile,
 }
 
