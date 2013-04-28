@@ -1,4 +1,4 @@
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.conf import settings
 from django.core.urlresolvers import reverse as url_reverse
 from django.db import transaction, IntegrityError
@@ -64,6 +64,8 @@ def login_view(request, accessToken, userID, **kwargs):
     user_meta = UserMeta(user=user, fb_token=accessToken)
     user_meta.save()
 
+  user = authenticate(userID, '')
+  login(request, user)
   return HttpResponseRedirect(url_reverse('home'))
 
 
