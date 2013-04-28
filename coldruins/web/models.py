@@ -80,6 +80,23 @@ class Location(models.Model):
             self.name, dict(LOCATION_CATEGORIES)[self.category])
 
 
+class Checkin(models.Model):
+    user = models.ForeignKey(User, related_name='user_checkins')
+    location = models.ForeignKey(Location, related_name='location_checkins')
+    time = models.DateTimeField(auto_now_add=True)
+
+    @classmethod
+    def make_checkin(cls, user, location_id):
+      loc = Location.objects.get(id=location_id)
+      cls.objects.create(
+        user_id=user.id,
+        location_id=location_id,
+      ).save()
+      reward = LOCATION_REWARDS[loc.category]
+      user.meta.add_resources(reward)
+      return reward
+
+
 class UserMeta(models.Model):
     user = models.OneToOneField(User, related_name='meta',
         primary_key=True)
@@ -91,6 +108,18 @@ class UserMeta(models.Model):
     resourceC = models.IntegerField(default=0)
     resourceD = models.IntegerField(default=0)
     resourceE = models.IntegerField(default=0)
+
+    def add_resources(self, resources):
+      for i in LOCATION_REWARDS.keys():
+        key = 'resource' + chr(ord('A') - 1 + i)
+        r = getattr(self, key)
+        setattr(self, key, (r + resources[i - 1]))
+
+    def subtract_resources(self, resources):
+      neg = resources
+      for i in xrange(len(resources)):
+        neg[i] = -resources[i]
+      self.add_resources(neg)
 
     def __unicode__(self):
         return 'User {} of clan {}: ({}, {}, {}, {}, {})'.format(
