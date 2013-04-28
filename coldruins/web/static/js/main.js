@@ -167,14 +167,16 @@ function initialize() {
             map: map,
             zIndex: 9999
           });
-          // var places = JSON.parse(response.message);
           var places = response.message;
-          console.log(places);
+          var own_places = [];
           for (var i=0; i<places.length; ++i) {
             var type = CATEGORIES_MAP[places[i].category];
             if (places[i].owner != null) {
               if (places[i].owner == window.userid) {
                 type += "_own";
+                own_places.push(
+                  new google.maps.LatLng(places[i].lat, places[i].lon)
+                );
               } else if (true /*TODO: check for clan */) {
                 type += "_clan"; 
               }
@@ -187,6 +189,9 @@ function initialize() {
               new google.maps.LatLng(places[i].lat, places[i].lon)
             );
           };
+          var hull = [];
+          chainHull_2D(own_places, own_places.length, hull);
+          highlight_area(hull);
         }
       );
     });
@@ -234,9 +239,20 @@ function checkin(m) {
   });
 }
 
+function filter_sepia ($image) {
+  // $image.on('load.add-sepia', function () {}
+    return $image;
+}
+
 function checkin_overlay(m) {
   pullData('get_location_data', {location_id: m.location_db_id}, 'post', function(rsp) {
     $('.locationname').html(m.locationname);
+    $('.content').html(
+      filter_sepia(jq_element('img').attr({
+        src: 'http://graph.facebook.com/'+m.locationid+'/picture?type=large',
+        alt: 'url'
+      }))
+    );
     var $container = $(document.createElement('div'));
     for (var i = 1; i <= 4; i++) {
       if (rsp[i]) {
@@ -258,7 +274,23 @@ function checkin_overlay(m) {
       createTroops(m, unit, 1);
     });
     $('#overlay').fadeIn();
+    FB.api('/'+m.locationid+'?fields=cover,description,link,checkins,likes,were_here_count', function (response) {
+        console.log(response);
+    });
   });
+}
+
+function highlight_area (points) {
+  area = new google.maps.Polygon({
+    paths: points,
+    strokeColor: "#00FF00",
+    strokeOpacity: 0.8,
+    strokeWeight: 2,
+    fillColor: "#00FF00",
+    fillOpacity: 0.35
+  });
+
+  area.setMap(map);
 }
 
 function add_location_marker (id, db_id, name, type, location) {
