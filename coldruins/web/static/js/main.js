@@ -144,21 +144,22 @@ function initialize() {
             map: map,
             zIndex: 9999
           });
-          var places = JSON.parse(response.message);
+          // var places = JSON.parse(response.message);
+          var places = response.message;
+          console.log(places);
           for (var i=0; i<places.length; ++i) {
-            var type = CATEGORIES_MAP[places[i].fields.category];
-            if (places[i].fields.owner != null) {
-              console.log(places[i].fields);
-              if (places[i].fields.owner == window.userid) {
+            var type = CATEGORIES_MAP[places[i].category];
+            if (places[i].owner != null) {
+              if (places[i].owner == window.userid) {
                 type += "_own";
               } else if (true /*TODO: check for clan */) {
                 type += "_clan"; 
               }
             }
             add_location_marker(
-              places[i].fields.fb_id,
+              places[i].fb_id,
               type,
-              new google.maps.LatLng(places[i].fields.lat, places[i].fields.lon)
+              new google.maps.LatLng(places[i].lat, places[i].lon)
             );
           };
         }

@@ -105,7 +105,7 @@ def _get_locations(request, center, distance):
       response.append(l)
     except IntegrityError:
       pass
-  ret = serializers.serialize('json', response)
+  ret = [l.export() for l in response]
   return _verdict_ok(ret)
 
 def login_view(request, accessToken, userID, **kwargs):
