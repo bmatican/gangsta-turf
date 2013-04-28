@@ -5,6 +5,7 @@ jQuery(function jquery_dom_loaded () {
 window.facebook_logged_in = function facebook_logged_in (authResponse) {
   FB.api('/me', function facebook_api_callback (response) {
     $('#user').html(response.first_name+' '+response.last_name);
+    $('#user_img').attr('src', response.picture.data.url);
   });
 }
 
